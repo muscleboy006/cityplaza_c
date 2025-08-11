@@ -120,7 +120,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     };
 
     try {
-      const response = await axios.post("${api}/acc/accruals", submitData);
+      const response = await axios.post(`${api}/acc/accruals`, submitData);
       console.log("Успешный ответ:", response.data);
       onSuccess?.();
       onClose?.();
