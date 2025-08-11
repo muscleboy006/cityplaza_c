@@ -1,98 +1,10 @@
-// import React, { useEffect, useState } from "react";
-// import axios from "axios";
-// import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-// import { Button } from "@/components/ui/button";
-// import EditAccrualModal from "./accrualEditModal";
-// import DeleteAccrualModal from "./accrualDelModal";
-
-// export default function AccrualDetailsModal({ accrualId, open, onClose }) {
-//   const [accrual, setAccrual] = useState(null);
-//   const [loading, setLoading] = useState(false);
-//   const [error, setError] = useState("");
-//       const [isEditOpen, setIsEditOpen] = useState(false);
-//       const [selectedAccrualId, setSelectedAccrualId] = useState(null);
-//       const [deleteId, setDeleteId] = useState(null);
-//       const [deleteOpen, setDeleteOpen] = useState(false);
-
-//   useEffect(() => {
-//     if (open && accrualId) {
-//       setLoading(true);
-//       setError("");
-//       axios.get(`http://localhost:7000/acc/accruals/${accrualId}`)
-//         .then(res => setAccrual(res.data.data))
-//         .catch(() => setError("Ошибка загрузки данных начисления"))
-//         .finally(() => setLoading(false));
-//     } else {
-//       setAccrual(null);
-//       setError("");
-//     }
-//   }, [open, accrualId]);
-
-//     // Функция открытия модалки с конкретным начислением
-//     const openEditModal = (accrualId) => {
-//         setSelectedAccrualId(accrualId);
-//         setIsEditOpen(true);
-//     };
-
-//     const openDeleteModal = (id) => {
-//         setDeleteId(id);
-//         setDeleteOpen(true);
-//     };
-
-//   return (
-//     <Dialog open={open} onOpenChange={onClose}>
-//       <DialogContent>
-//         <DialogHeader>
-//           <DialogTitle>Детали начисления</DialogTitle>
-//         </DialogHeader>
-
-//         {loading && <p>Загрузка...</p>}
-
-//         {error && <p className="text-red-600">{error}</p>}
-
-//         {accrual && !loading && !error && (
-//           <div className="space-y-2">
-//             <p><b>Год:</b> {accrual.year}</p>
-//             <p><b>Месяц:</b> {accrual.month}</p>
-//             <p><b>Начисление:</b> {new Intl.NumberFormat("ru-RU").format(accrual.accrualAmount)} сум</p>
-//             {/* Здесь можно добавить любые другие поля, которые есть у accrual */}
-//           </div>
-//         )}
-
-//         <div className="mt-4 flex justify-end">
-//           <Button onClick={() => onClose(false)}>Закрыть</Button>
-//         </div>
-//       </DialogContent>
-//                   <EditAccrualModal
-//                       open={isEditOpen}
-//                       onClose={() => setIsEditOpen(false)}
-//                       accrualId={selectedAccrualId}
-//                       contractId={contract._id}
-//                       onSuccess={async () => {
-//                           console.log("Начисление успешно обновлено, обновляем запись...");
-//                           await updateSingleAccrual(selectedAccrualId);
-//                           setIsEditOpen(false);
-//                       }}
-//                   />
-      
-//                   <DeleteAccrualModal
-//                       open={deleteOpen}
-//                       accrualId={deleteId}
-//                       onOpenChange={setDeleteOpen}
-//                       onSuccess={() => {
-//                           fetchAccruals(1, true),
-//                           setDeleteOpen(false);
-//                       }}
-//                   />
-//     </Dialog>
-//   );
-// }
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import EditAccrualModal from "./accrualEditModal";
 import DeleteAccrualModal from "./accrualDelModal";
+import api from "@/Utils/api";
 
 export default function AccrualDetailsModal({ accrualId, open, onClose, onSuccess }) {
   const [accrual, setAccrual] = useState(null);
@@ -110,14 +22,14 @@ export default function AccrualDetailsModal({ accrualId, open, onClose, onSucces
       setError("");
       
       // Загружаем данные начисления
-      axios.get(`http://localhost:7000/acc/accruals/${accrualId}`)
+      axios.get(`${api}/acc/accruals/${accrualId}`)
         .then(res => {
           const accrualData = res.data.data;
           setAccrual(accrualData);
           
           // Если в данных начисления есть contractId, загружаем контракт
           if (accrualData.contractId) {
-            return axios.get(`http://localhost:7000/con/contracts/${accrualData.contractId}`);
+            return axios.get(`${api}/con/contracts/${accrualData.contractId}`);
           }
           return null;
         })
@@ -150,7 +62,7 @@ export default function AccrualDetailsModal({ accrualId, open, onClose, onSucces
   // Функция обновления единичного начисления
   const updateSingleAccrual = async (accrualId) => {
     try {
-      const response = await axios.get(`http://localhost:7000/acc/accruals/${accrualId}`);
+      const response = await axios.get(`${api}/acc/accruals/${accrualId}`);
       const updatedAccrual = response.data.data;
       setAccrual(updatedAccrual);
       

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import api from "@/Utils/api";
 
 export default function DeleteAccrualModal({ accrualId, open, onOpenChange, onSuccess }) {
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ export default function DeleteAccrualModal({ accrualId, open, onOpenChange, onSu
     setError("");
 
     try {
-      await axios.delete(`http://localhost:7000/acc/accruals/${accrualId}`);
+      await axios.delete(`${api}/acc/accruals/${accrualId}`);
       if (onSuccess) {
         await onSuccess();
       }

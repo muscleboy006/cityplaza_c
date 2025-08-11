@@ -28,6 +28,7 @@ import { ru } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import AccrualModal from "./accrualModal";
 import AccrualDetailsModal from "./accuralDetModal";
+import api from "@/Utils/api";
 
 export default function ConDetails() {
   const { id } = useParams();
@@ -62,7 +63,7 @@ export default function ConDetails() {
 
     try {
       const res = await axios.get(
-        `http://localhost:7000/con/contracts/${id}?page=${pageFromServer}&limit=50`
+        `${api}/con/contracts/${id}?page=${pageFromServer}&limit=50`
       );
       if (res.data.success) {
         setContract(res.data.data);
@@ -103,7 +104,7 @@ export default function ConDetails() {
   const updateSingleAccrual = async (accrualId) => {
     try {
       // Загружаем обновленные данные конкретного начисления
-      const response = await axios.get(`http://localhost:7000/acc/accruals/${accrualId}`);
+      const response = await axios.get(`${api}/acc/accruals/${accrualId}`);
       const updatedAccrual = response.data.data;
 
       // Обновляем только эту запись в существующем массиве
@@ -183,7 +184,7 @@ export default function ConDetails() {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`http://localhost:7000/con/contracts/${contract.contract._id}`);
+      await axios.delete(`${api}/con/contracts/${contract.contract._id}`);
       navigate("/contracts");
     } catch (err) {
       console.error("Ошибка при удалении контракта:", err);

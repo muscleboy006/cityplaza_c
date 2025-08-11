@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import api from "@/Utils/api";
 
 export default function AddContractPage() {
   const today = new Date().toISOString().split("T")[0];
@@ -37,7 +38,7 @@ export default function AddContractPage() {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:7000/con/contracts", {
+      const res = await fetch(`${api}/con/contracts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

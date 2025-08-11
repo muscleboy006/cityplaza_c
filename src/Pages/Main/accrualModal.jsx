@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import api from "@/Utils/api";
 
 export default function AccrualModal({ open, onClose, contractId, contractAmount, onSuccess }) {
   const months = [
@@ -25,7 +26,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
   // Загружаем дату въезда при открытии
   useEffect(() => {
     if (open && contractId) {
-      axios.get(`http://localhost:7000/con/contracts/${contractId}`)
+      axios.get(`${api}/con/contracts/${contractId}`)
         .then(res => {
           if (res.data?.data?.contract?.moveInDate) {
             setMoveInDate(new Date(res.data.data.contract.moveInDate));
@@ -40,7 +41,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     if (!contractId || !year || !month) return;
     try {
       const response = await axios.get(
-        `http://localhost:7000/acc/accruals/check/${contractId}?year=${year}&month=${month}`
+        `${api}/acc/accruals/check/${contractId}?year=${year}&month=${month}`
       );
       setAvailabilityInfo(response.data.data);
       setError("");
@@ -119,7 +120,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     };
 
     try {
-      const response = await axios.post("http://localhost:7000/acc/accruals", submitData);
+      const response = await axios.post("${api}/acc/accruals", submitData);
       console.log("Успешный ответ:", response.data);
       onSuccess?.();
       onClose?.();

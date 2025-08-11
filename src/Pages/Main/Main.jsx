@@ -1,25 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-
 import { Button } from '@/components/ui/button';
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Tooltip } from '@/components/ui/tooltip';
-import { FlashOn, Thunderstorm, Water } from '@mui/icons-material';
-
+import { FlashOn, Water } from '@mui/icons-material';
 import {
   MenuIcon,
   SearchIcon,
   XIcon,
-  // FlashIcon,
-  // DropIcon,
 } from 'lucide-react'; // иконки shadcn обычно из lucide-react
+import api from '@/Utils/api';
 
 export default function Main() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -32,7 +25,7 @@ export default function Main() {
   const loadAllContracts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await axios.get('http://localhost:7000/con/contracts?limit=50&page=1');
+      const res = await axios.get(`${api}/con/contracts?limit=50&page=1`);
       if (res.data.success && Array.isArray(res.data.data)) {
         const dataWithId = res.data.data.map((item, index) => ({
           id: item._id || index + 1,
@@ -59,7 +52,7 @@ export default function Main() {
       setLoading(true);
       setIsSearching(true);
       try {
-        const res = await axios.get('http://localhost:7000/con/search/contracts', {
+        const res = await axios.get(`${api}/con/search/contracts`, {
           params: { query: query.trim() },
         });
         if (res.data.success && Array.isArray(res.data.data)) {

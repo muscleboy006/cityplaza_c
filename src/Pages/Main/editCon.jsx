@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import api from "@/Utils/api";
 
 export default function EditContractPage() {
   const { id } = useParams();
@@ -43,7 +44,7 @@ export default function EditContractPage() {
       try {
         console.log(`Загружаем контракт с ID: ${id}`);
         
-        const res = await fetch(`http://localhost:7000/con/contracts/${id}`);
+        const res = await fetch(`${api}/con/contracts/${id}`);
         
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
@@ -120,7 +121,7 @@ export default function EditContractPage() {
     try {
       console.log("Отправляем данные:", formData);
       
-      const res = await fetch(`http://localhost:7000/con/contracts/${id}`, {
+      const res = await fetch(`${api}/con/contracts/${id}`, {
         method: "PUT",
         headers: { 
           "Content-Type": "application/json" 

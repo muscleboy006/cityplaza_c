@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import api from "@/Utils/api";
 
 export default function EditAccrualModal({ open, onClose, accrualId, contractId, onSuccess }) {
   const months = [
@@ -30,7 +31,7 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
 
     try {
       const response = await axios.get(
-        `http://localhost:7000/acc/accruals/check/${contractId}?year=${year}&month=${month}&excludeId=${accrualId}`
+        `${api}/acc/accruals/check/${contractId}?year=${year}&month=${month}&excludeId=${accrualId}`
       );
       setAvailabilityInfo(response.data.data);
       setError("");
@@ -46,7 +47,7 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
       setLoading(true);
       setError("");
 
-      axios.get(`http://localhost:7000/acc/accruals/${accrualId}`)
+      axios.get(`${api}/acc/accruals/${accrualId}`)
         .then(res => {
           const data = res.data.data;
           setForm({
@@ -112,7 +113,7 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
     }
 
     try {
-      const response = await axios.put(`http://localhost:7000/acc/accruals/${accrualId}`, {
+      const response = await axios.put(`${api}/acc/accruals/${accrualId}`, {
         year: form.year,
         month: form.month,
         accrualAmount: accrualNum,
