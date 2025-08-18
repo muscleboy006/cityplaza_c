@@ -6,6 +6,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Analytics, Description, FlashOn, Water } from '@mui/icons-material';
 import { MenuIcon, CreditCard, Building, TrendingUp } from 'lucide-react';
+import api from '@/Utils/api';
 
 export default function StatsDashboard() {
   const now = new Date();
@@ -44,7 +45,7 @@ export default function StatsDashboard() {
       if (selectedMonth !== 'all') params.append('month', selectedMonth);
       
       // Реальный API вызов - раскомментируйте для использования
-      const response = await fetch(`http://localhost:7000/con/stats?${params}`);
+      const response = await fetch(`${api}/con/stats?${params}`);
       
       const data = await response.json();
       console.log(data);
