@@ -19,7 +19,6 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     accrualAmount: "",
   });
   const [loading, setLoading] = useState(false);
-  const [availabilityInfo, setAvailabilityInfo] = useState(null);
   const [error, setError] = useState("");
   const [moveInDate, setMoveInDate] = useState(null);
 
@@ -36,28 +35,6 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     }
   }, [open, contractId]);
 
-  // Функция для проверки доступной суммы
-  const checkAvailableAmount = async (year, month) => {
-    if (!contractId || !year || !month) return;
-    try {
-      const response = await axios.get(
-        `${api}/acc/accruals/check/${contractId}?year=${year}&month=${month}`
-      );
-      setAvailabilityInfo(response.data.data);
-      setError("");
-    } catch (err) {
-      console.error("Ошибка при проверке доступной суммы:", err);
-      setAvailabilityInfo(null);
-    }
-  };
-
-  // Проверка при изменении даты
-  useEffect(() => {
-    if (open && contractId) {
-      checkAvailableAmount(form.year, form.month);
-    }
-  }, [open, contractId, form.year, form.month]);
-
   const formatNumber = (value) => {
     if (!value) return "";
     const numericValue = value.toString().replace(/\D/g, "");
@@ -67,30 +44,11 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
   const handleNumberChange = (e) => {
     const { name, value } = e.target;
     const numericValue = value.replace(/\D/g, "");
-    setForm(prev => ({ ...prev, [name]: numericValue }));
-    if (name === "accrualAmount" && availabilityInfo) {
-      const requestedAmount = Number(numericValue) || 0;
-      if (requestedAmount > availabilityInfo.availableAmount) {
-        setError(`Начисление не может превышать доступную сумму (${formatNumber(availabilityInfo.availableAmount)})`);
-      } else {
-        setError("");
-      }
-    }
+    setForm(prev => ({ ...prev, [name]: numericValue }))
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-
-    // Проверка, чтобы нельзя было выбрать месяц раньше въезда
-    if (name === "year" && moveInDate) {
-      const yearNum = Number(value);
-      if (yearNum < moveInDate.getFullYear()) return; // запрещаем выбор
-    }
-    if (name === "month" && moveInDate && Number(form.year) === moveInDate.getFullYear()) {
-      const monthIndex = months.indexOf(value);
-      if (monthIndex < moveInDate.getMonth()) return; // запрещаем выбор
-    }
-
     if (["accrualAmount"].includes(name)) {
       handleNumberChange(e);
     } else {
@@ -104,19 +62,12 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     setLoading(true);
     setError("");
 
-    const accrualNum = Number(form.accrualAmount) || 0;
-    if (availabilityInfo && accrualNum > availabilityInfo.availableAmount) {
-      setError(`Начисление не может превышать доступную сумму (${formatNumber(availabilityInfo.availableAmount)})`);
-      setLoading(false);
-      return;
-    }
-
     const submitData = {
       year: Number(form.year),
       month: form.month,
       contractId,
       contractAmount: Number(contractAmount),
-      accrualAmount: accrualNum,
+      accrualAmount: Number(form.accrualAmount),
     };
 
     try {
@@ -144,25 +95,6 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
         <DialogHeader>
           <DialogTitle>Добавить начисление</DialogTitle>
         </DialogHeader>
-
-        {availabilityInfo && (
-          <div className="mb-4 p-3 bg-gray-50 rounded">
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Сумма по договору:</strong> {formatNumber(availabilityInfo.contractAmount)}
-            </p>
-            <p className="text-sm text-gray-600 mb-1">
-              <strong>Уже начислено ({form.month} {form.year}):</strong> {formatNumber(availabilityInfo.totalAccruedAmount)}
-            </p>
-            <p className="text-sm font-medium text-green-600">
-              <strong>Доступно для начисления:</strong> {formatNumber(availabilityInfo.availableAmount)}
-            </p>
-            {availabilityInfo.existingAccruals > 0 && (
-              <p className="text-xs text-blue-600 mt-1">
-                Найдено начислений за этот период: {availabilityInfo.existingAccruals}
-              </p>
-            )}
-          </div>
-        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
@@ -204,7 +136,6 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
               onChange={handleChange}
               className={`w-full border rounded px-2 py-1 ${error ? "border-red-500" : ""}`}
               required
-              placeholder={availabilityInfo ? `Максимум: ${formatNumber(availabilityInfo.availableAmount)}` : ""}
             />
           </div>
 
@@ -212,7 +143,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
 
           <button
             type="submit"
-            disabled={loading || (availabilityInfo && Number(form.accrualAmount) > availabilityInfo.availableAmount)}
+            disabled={loading}
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             {loading ? "Сохранение..." : "Сохранить"}

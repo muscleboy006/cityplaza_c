@@ -1,18 +1,16 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import Dashboard from './Pages/Main/Main';
-import MainLayout from './Pages/Tabs';
+import Main from './Pages/Main/Main';
 import { useState, useEffect } from 'react';
 import InstallPromptModal from './Modal/InstallPromptModal';
 import IosInstallGuideModal from './Modal/IosInstallGuideModal';
 import LoginPage from './Utils/LoginPage';
 import { AuthProvider } from './AuthContext';
 import { ProtectedRoute, PublicRoute } from './Utils/AuthRoutes';
-import Debt from './Pages/Debt/Debt';
-import Report from './Pages/Report/Report';
-import AddContractPage from './Pages/Main/addCon';
+import AddContractPage from './Pages/Contract/addCon';
 import ConAccrual from './Pages/Main/ConAccrual';
-import EditContractPage from './Pages/Main/editCon';
+import EditContractPage from './Pages/Contract/editCon';
+import Contracts from './Pages/Contract/Contracts';
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -74,15 +72,12 @@ function App() {
 
           {/* Protected routes with MainLayout */}
           <Route element={<ProtectedRoute />}>
-            {/* <Route element={<MainLayout />}> */}
-              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Main />} />
+              <Route path="/cons" element={<Contracts />} />
               <Route path="/con/:id" element={<ConAccrual />} />
               <Route path="/con/e/:id" element={<EditContractPage />} />
               <Route path="/addcon" element={<AddContractPage />} />
-              <Route path="/debts" element={<Debt />} />
-              <Route path="/reports" element={<Report />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            {/* </Route> */}
           </Route>
 
           {/* Catch all other routes and redirect */}

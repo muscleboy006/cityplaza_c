@@ -26,8 +26,8 @@ import {
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
-import AccrualModal from "./accrualModal";
-import AccrualDetailsModal from "./accuralDetModal";
+import AccrualModal from "../Accrual/accrualModal";
+import AccrualDetailsModal from "../Accrual/accuralDetModal";
 import api from "@/Utils/api";
 
 export default function ConDetails() {
@@ -66,8 +66,8 @@ export default function ConDetails() {
         `${api}/con/contracts/${id}?page=${pageFromServer}&limit=50`
       );
       if (res.data.success) {
-        setContract(res.data.data);
         console.log(res.data.data);
+        setContract(res.data.data);
 
         // Добавляем страницу в список загруженных
         loadedPages.current.add(pageFromServer);
@@ -75,6 +75,7 @@ export default function ConDetails() {
         // Если это первая страница или принудительная перезагрузка, заменяем массив полностью
         if (pageFromServer === 1 || forceReload) {
           setAccruals(res.data.data.accruals);
+          console.log(res.data.data);
         } else {
           // Для последующих страниц добавляем к существующим данным
           setAccruals((prev) => {
@@ -203,7 +204,7 @@ export default function ConDetails() {
               <div className="text-sm text-gray-500">
                 <span
                   className="cursor-pointer hover:underline"
-                  onClick={() => navigate('/contracts')}
+                  onClick={() => navigate('/cons')}
                 >
                   Договоры
                 </span>
@@ -319,9 +320,7 @@ export default function ConDetails() {
                 <TableRow>
                   <TableHead>Год</TableHead>
                   <TableHead>Месяц</TableHead>
-                  <TableHead>Начисление</TableHead>
-                  <TableHead>Долг</TableHead>
-                  <TableHead></TableHead>
+                  <TableHead>Сумма</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -335,7 +334,6 @@ export default function ConDetails() {
                       <TableCell>{acc.year}</TableCell>
                       <TableCell>{acc.month}</TableCell>
                       <TableCell>{formatNumber(acc.accrualAmount)}</TableCell>
-                      <TableCell>{formatNumber(acc.monthlyDebt)}</TableCell>
                     </TableRow>
                   ))
                 ) : (

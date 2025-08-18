@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import EditAccrualModal from "./accrualEditModal";
-import DeleteAccrualModal from "./accrualDelModal";
+import EditAccrualModal from "../Accrual/accrualEditModal";
+import DeleteAccrualModal from "../Accrual/accrualDelModal";
 import api from "@/Utils/api";
 
 export default function AccrualDetailsModal({ accrualId, open, onClose, onSuccess }) {
