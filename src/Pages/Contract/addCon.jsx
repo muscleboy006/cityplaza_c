@@ -16,6 +16,7 @@ export default function AddContractPage() {
     area: "",
     officeNumber: "",
     company: "",
+    link: "",
     moveInDate: today,
     moveOutDate: "",
     contractAmount: "",
@@ -46,7 +47,7 @@ export default function AddContractPage() {
 
       if (!res.ok) throw new Error(`Ошибка: ${res.status}`);
 
-      navigate("/dashboard");
+      navigate("/cons");
     } catch (err) {
       console.error("Ошибка при добавлении договора:", err);
       alert("Не удалось добавить договор");
@@ -127,6 +128,20 @@ export default function AddContractPage() {
         id="company"
         name="company"
         value={formData.company}
+        onChange={handleChange}
+        required
+        className="h-9"
+      />
+    </div>
+
+    <div>
+      <Label htmlFor="link" className="text-base font-semibold">
+        Ссылка
+      </Label>
+      <Input
+        id="link"
+        name="link"
+        value={formData.link}
         onChange={handleChange}
         required
         className="h-9"

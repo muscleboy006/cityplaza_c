@@ -66,18 +66,6 @@ export default function StatsDashboard() {
   if (loading) {
     return (
       <div className="flex flex-col h-screen">
-        {/* Header */}
-        <header className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
-          <button
-            className="p-2 rounded-md hover:bg-primary/30 transition"
-            onClick={() => setDrawerOpen(true)}
-          >
-            <MenuIcon className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-semibold">Статистика</h1>
-          <div></div>
-        </header>
-
         {/* Loading Content */}
         <div className="flex-1 p-6 space-y-6">
           <div className="flex gap-4 mb-6">
@@ -106,16 +94,6 @@ export default function StatsDashboard() {
   if (!stats?.success) {
     return (
       <div className="flex flex-col h-screen">
-        <header className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
-          <button
-            className="p-2 rounded-md hover:bg-primary/30 transition"
-            onClick={() => setDrawerOpen(true)}
-          >
-            <MenuIcon className="w-6 h-6" />
-          </button>
-          <h1 className="text-lg font-semibold">Статистика</h1>
-          <div></div>
-        </header>
         <div className="flex-1 flex items-center justify-center">
           <p className="text-muted-foreground">Ошибка загрузки данных</p>
         </div>
@@ -176,21 +154,8 @@ export default function StatsDashboard() {
 
   return (
     <div className="flex flex-col h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between bg-primary px-4 py-3 text-primary-foreground">
-        <button
-          className="p-2 rounded-md hover:bg-primary/30 transition"
-          onClick={() => setDrawerOpen(true)}
-          aria-label="Открыть меню"
-        >
-          <MenuIcon className="w-6 h-6" />
-        </button>
-        <h1 className="text-lg font-semibold">Статистика</h1>
-        <div></div>
-      </header>
-
       {/* Main Content */}
-      <div className="flex-1 p-6 space-y-6">
+      <div className="flex-1 p-2 space-y-2">
         {/* Filters */}
         <div className="flex gap-4">
           <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -412,6 +377,16 @@ export default function StatsDashboard() {
             >
               <Description className="w-5 h-5 mr-2" />
               Договоры
+            </button>
+            <button
+              onClick={() => {
+                navigate('/archcons')
+                setDrawerOpen(false);
+              }}
+              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
+            >
+              <Description className="w-5 h-5 mr-2" />
+              Архивные договоры
             </button>
             <button
               onClick={() => {

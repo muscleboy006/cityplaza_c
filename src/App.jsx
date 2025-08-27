@@ -8,9 +8,15 @@ import LoginPage from './Utils/LoginPage';
 import { AuthProvider } from './AuthContext';
 import { ProtectedRoute, PublicRoute } from './Utils/AuthRoutes';
 import AddContractPage from './Pages/Contract/addCon';
-import ConAccrual from './Pages/Main/ConAccrual';
 import EditContractPage from './Pages/Contract/editCon';
 import Contracts from './Pages/Contract/Contracts';
+import Archcons from './Pages/Contract/Archcons';
+import ElectrcyTable from './Pages/Electrcy/Electrcy';
+import SuvTable from './Pages/Suv/Suv';
+import GasTable from './Pages/Gas/Gas';
+import TaxTable from './Pages/Tax/Tax';
+import MainLayout from './MainLayout';
+import MancomPayments from './Pages/Mancom/Mancom';
 
 function App() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -72,12 +78,19 @@ function App() {
 
           {/* Protected routes with MainLayout */}
           <Route element={<ProtectedRoute />}>
+            <Route element={<MainLayout />}>
               <Route path="/dashboard" element={<Main />} />
               <Route path="/cons" element={<Contracts />} />
-              <Route path="/con/:id" element={<ConAccrual />} />
+              <Route path="/elec" element={<ElectrcyTable />} />
+              <Route path="/suv" element={<SuvTable />} />
+              <Route path="/gas" element={<GasTable />} />
+              <Route path="/tax" element={<TaxTable />} />
+              <Route path="/man" element={<MancomPayments />} />
+              <Route path="/archcons" element={<Archcons />} />
               <Route path="/con/e/:id" element={<EditContractPage />} />
               <Route path="/addcon" element={<AddContractPage />} />
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            </Route>
           </Route>
 
           {/* Catch all other routes and redirect */}
