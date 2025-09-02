@@ -145,21 +145,23 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
       </Dialog>
 
       {/* Модал добавления начисления */}
-      <AccrualModal
-        open={isAddOpen}
-        onClose={() => setIsAddOpen(false)}
-        contractId={rowData.id}
-        contractAmount={rowData.contractAmount}
-        onSuccess={() => {
-          setIsAddOpen(false);
-          updateData();
-        }}
-        initialYear={year}
-        initialMonth={monthDisplayName}
-      />
+      {isAddOpen && (
+        <AccrualModal
+          open={isAddOpen}
+          onClose={() => setIsAddOpen(false)}
+          contractId={rowData.id}
+          contractAmount={rowData.contractAmount}
+          onSuccess={() => {
+            setIsAddOpen(false);
+            updateData();
+          }}
+          initialYear={year}
+          initialMonth={monthDisplayName}
+        />
+      )}
 
       {/* Модал редактирования */}
-      {rowData && (
+      {isEditOpen && rowData && (
         <EditAccrualModal
           open={isEditOpen}
           onClose={() => setIsEditOpen(false)}
@@ -173,15 +175,17 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
       )}
 
       {/* Модал удаления */}
-      <DeleteAccrualModal
-        open={deleteOpen}
-        accrualId={deleteId}
-        onOpenChange={setDeleteOpen}
-        onSuccess={() => {
-          setDeleteOpen(false);
-          updateData();
-        }}
-      />
+      {deleteOpen && (
+        <DeleteAccrualModal
+          open={deleteOpen}
+          accrualId={deleteId}
+          onOpenChange={setDeleteOpen}
+          onSuccess={() => {
+            setDeleteOpen(false);
+            updateData();
+          }}
+        />
+      )}
     </>
   );
 };
