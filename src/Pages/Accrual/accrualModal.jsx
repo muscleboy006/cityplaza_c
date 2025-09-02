@@ -118,12 +118,9 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
               onChange={handleChange}
               className="w-full border rounded px-2 py-1"
             >
-              {months.map((m, idx) => {
-                if (moveInDate && Number(form.year) === moveInDate.getFullYear() && idx < moveInDate.getMonth()) {
-                  return null; // пропускаем месяцы до въезда
-                }
-                return <option key={m} value={m}>{m}</option>;
-              })}
+              {months.map((m, idx) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
             </select>
           </div>
 
