@@ -1,414 +1,316 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Analytics, Description, FlashOn, Water } from '@mui/icons-material';
-import { MenuIcon, CreditCard, Building, TrendingUp } from 'lucide-react';
-import api from '@/Utils/api';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-export default function StatsDashboard() {
-  const now = new Date();
-  const currentYear = String(now.getFullYear());
-  const currentMonth = String(now.getMonth()); // getMonth() возвращает 0–11
+// shadcn/ui components (adjust imports to your project structure)
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [selectedYear, setSelectedYear] = useState(currentYear);
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const navigate = useNavigate();
+// utils
+import api from "@/Utils/api"; // ваш базовый url, как в оригинале
 
-  const years = ['all', '2024', '2025', '2026'];
-  const months = [
-    { value: 'all', label: 'Все месяцы' },
-    { value: '1', label: 'Январь' },
-    { value: '2', label: 'Февраль' },
-    { value: '3', label: 'Март' },
-    { value: '4', label: 'Апрель' },
-    { value: '5', label: 'Май' },
-    { value: '6', label: 'Июнь' },
-    { value: '7', label: 'Июль' },
-    { value: '8', label: 'Август' },
-    { value: '9', label: 'Сентябрь' },
-    { value: '10', label: 'Октябрь' },
-    { value: '11', label: 'Ноябрь' },
-    { value: '12', label: 'Декабрь' }
-  ];
+const formatSum = (v) => (typeof v === "number" ? v.toLocaleString() + " сум" : "—");
 
-  const fetchStats = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (selectedYear !== 'all') params.append('year', selectedYear);
-      if (selectedMonth !== 'all') params.append('month', selectedMonth);
-      
-      // Реальный API вызов - раскомментируйте для использования
-      const response = await fetch(`${api}/con/stats?${params}`);
-      
-      const data = await response.json();
-      console.log(data);
-      
-      
-      setStats(data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function StatisticsComponent() {
+  const [statistics, setStatistics] = useState({
+    totalDebt: 0,
+    totalIncomeMonth: 0,
+    totalIncomeYear: 0,
+    occupiedArea: 0,
+    totalArea: 0,
+    occupancyPercentage: 0,
+  });
+
+  const [debts, setDebts] = useState({
+    electricity: null,
+    water: null,
+    gas: null,
+    tax: null,
+    management: null,
+  });
+
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchStats();
-  }, [selectedYear, selectedMonth]);
+    let cancelled = false;
 
-  if (loading) {
-    return (
-      <div className="flex flex-col h-screen">
-        {/* Loading Content */}
-        <div className="flex-1 p-6 space-y-6">
-          <div className="flex gap-4 mb-6">
-            <div className="h-10 bg-muted rounded w-32 animate-pulse"></div>
-            <div className="h-10 bg-muted rounded w-32 animate-pulse"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-muted rounded-lg h-64 animate-pulse"></div>
-            ))}
-          </div>
-        </div>
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        // основной стейт
+        const statsRes = await axios.get(`${api}/con/stats`);
+        if (!cancelled && statsRes.data?.success) {
+          const { totalDebt, payments, occupancy } = statsRes.data.data;
+          setStatistics({
+            totalDebt: totalDebt || 0,
+            totalIncomeMonth: payments?.prevMonth || 0,
+            totalIncomeYear: payments?.thisYear || 0,
+            occupiedArea: occupancy?.occupiedArea || 0,
+            totalArea: occupancy?.totalBuildingArea || 0,
+            occupancyPercentage: occupancy?.occupancyPercentage || 0,
+          });
+        }
 
-        {/* Sidebar */}
-        <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-          <SheetContent side="left" className="w-64">
-            <SheetHeader>
-              <SheetTitle>Меню</SheetTitle>
-            </SheetHeader>
-          </SheetContent>
-        </Sheet>
-      </div>
-    );
-  }
+        // по-очереди долги (если API недоступно — используется демо)
+        const [el, su, ga, ta, man] = await Promise.allSettled([
+          axios.get(`${api}/elc/debt`),
+          axios.get(`${api}/suv/debt`),
+          axios.get(`${api}/gas/debt`),
+          axios.get(`${api}/tax/debt`),
+          axios.get(`${api}/man/debt`),
+        ]);
 
-  if (!stats?.success) {
-    return (
-      <div className="flex flex-col h-screen">
-        <div className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Ошибка загрузки данных</p>
-        </div>
-      </div>
-    );
-  }
+        if (!cancelled) {
+          setDebts((prev) => ({
+            ...prev,
+            electricity: el.status === "fulfilled" && el.value.data ? el.value.data : null,
+            water: su.status === "fulfilled" && su.value.data ? su.value.data : null,
+            gas: ga.status === "fulfilled" && ga.value.data ? ga.value.data : null,
+            tax: ta.status === "fulfilled" && ta.value.data ? ta.value.data : null,
+            management: man.status === "fulfilled" && man.value.data ? man.value.data : null,
+          }));
+        }
 
-  const { data } = stats;
+        setError(null);
+      } catch (err) {
+        console.error(err);
+        setError("API unavailable — показываю демо-данные.");
 
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('ru-RU', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(value) + ' сум';
-  };
+        // демо-данные как fallback
+        setStatistics({
+          totalDebt: 31339354.84,
+          totalIncomeMonth: 24000000,
+          totalIncomeYear: 44000000,
+          occupiedArea: 20,
+          totalArea: 1000,
+          occupancyPercentage: 2,
+        });
 
+        setDebts({
+          electricity: { totalElectrcy: 100000000, totalPayments: 1000000, totalDebt: 99000000 },
+          water: { totalSuv: 100000000, totalPayments: 1000000, totalDebt: 99000000 },
+          gas: { totalGas: 100000000, totalPayments: 1000000, totalDebt: 99000000 },
+          tax: { totalTax: 100000000, totalPayments: 1000000, totalDebt: 99000000 },
+          management: {
+            totalAccrualAmount: 44000000,
+            totalDebt: 1760000,
+            companies: [
+              { company: "Компания 1", accrualBase: 44000000, needToPay: 3080000, paid: 1100000, debt: 1980000 },
+              { company: "Компания 2", accrualBase: 44000000, needToPay: 880000, paid: 1100000, debt: -220000 },
+            ],
+          },
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
 
-  const formatNumber = (value) => {
-    return new Intl.NumberFormat('ru-RU').format(value);
-  };
+    fetchAll();
 
-  const StatCard = ({ title, value, icon: Icon, pieData, colors, subtitle }) => (
-    <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <Icon className="h-4 w-4" />
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold mb-2">{value}</div>
-        {subtitle && <div className="text-sm text-muted-foreground mb-4">{subtitle}</div>}
-        <div className="h-32">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={30}
-                outerRadius={50}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {pieData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={colors[index]} />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value, name) => [formatNumber(value), name]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* Main Content */}
-      <div className="flex-1 p-2 space-y-2">
-        {/* Filters */}
-        <div className="flex gap-4">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Выберите год" />
-            </SelectTrigger>
-            <SelectContent>
-              {years.map(year => (
-                <SelectItem key={year} value={year}>
-                  {year === 'all' ? 'Все годы' : year}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Выберите месяц" />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map(month => (
-                <SelectItem key={month.value} value={month.value}>
-                  {month.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">Статистика здания</h1>
+          <p className="text-sm text-muted-foreground">Актуальные показатели по долгам и занятости</p>
         </div>
-
-        {/* Key Metrics Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <CreditCard className="h-4 w-4" />
-                Задолженность
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-red-600">{formatCurrency(data.totalDebt)}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <TrendingUp className="h-4 w-4" />
-                Платежи
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">{formatCurrency(data.totalPaymentsThisPeriod)}</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Building className="h-4 w-4" />
-                Занятость
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{data.occupancy.occupancyPercent}%</div>
-              <div className="text-sm text-muted-foreground mt-1">
-                {formatNumber(data.occupancy.occupiedArea)} из {formatNumber(data.occupancy.totalBuildingArea)} м²
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Financial Overview */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Финансовый обзор</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Задолженность', value: data.totalDebt, color: '#ef4444' },
-                        { name: 'Платежи', value: data.totalPayments, color: '#22c55e' }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                    >
-                      <Cell fill="#ef4444" />
-                      <Cell fill="#22c55e" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-sm">Долг: {formatCurrency(data.totalDebt)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Платежи: {formatCurrency(data.totalPayments)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Space Utilization */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Использование площадей</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={[
-                        { name: 'Занято', value: data.occupancy.occupiedArea, color: '#3b82f6' },
-                        { name: 'Свободно', value: data.occupancy.totalBuildingArea - data.occupancy.occupiedArea, color: '#e5e7eb' }
-                      ]}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={80}
-                      dataKey="value"
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
-                    >
-                      <Cell fill="#3b82f6" />
-                      <Cell fill="#e5e7eb" />
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex justify-center gap-6 mt-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm">Занято: {formatNumber(data.occupancy.occupiedArea)} м²</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-                  <span className="text-sm">Свободно: {formatNumber(data.occupancy.totalBuildingArea - data.occupancy.occupiedArea)} м²</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-          <Card className="bg-gradient-to-r from-orange-50 to-orange-100">
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-orange-600 mb-2">
-                {formatCurrency((data.totalDebt - data.totalPayments) / data.occupancy.occupiedArea)}
-              </div>
-              <div className="text-sm text-orange-700">Чистый долг за м²</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100">
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-blue-600 mb-2">
-                {Math.round((data.occupancy.totalBuildingArea - data.occupancy.occupiedArea) / 50)}
-              </div>
-              <div className="text-sm text-blue-700">Потенциальных арендаторов</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-green-50 to-green-100">
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-green-600 mb-2">
-                {formatCurrency(data.totalPayments / 6)}
-              </div>
-              <div className="text-sm text-green-700">Средний платеж в месяц</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-purple-50 to-purple-100">
-            <CardContent className="p-6 text-center">
-              <div className="text-2xl font-bold text-purple-600 mb-2">
-                {(((data.totalDebt - data.totalPayments) / data.totalDebt) * 100).toFixed(0)}%
-              </div>
-              <div className="text-sm text-purple-700">Процент невыплат</div>
-            </CardContent>
-          </Card>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => window.location.reload()} size="sm">Обновить</Button>
+          {error && <Badge variant="destructive">Проблема с API</Badge>}
         </div>
       </div>
 
-      {/* Sidebar */}
-      <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <SheetContent side="left" className="w-64">
-          <SheetHeader>
-            <SheetTitle>Меню</SheetTitle>
-          </SheetHeader>
-          <div className="space-y-1 px-2 mt-4">
-            <button
-              onClick={() => {
-                navigate('/dashboard')
-                setDrawerOpen(false);
-              }}
-              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
-            >
-              <Analytics className="w-5 h-5 mr-2" />
-              Дашборд
-            </button>
-            <button
-              onClick={() => {
-                navigate('/cons')
-                setDrawerOpen(false);
-              }}
-              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
-            >
-              <Description className="w-5 h-5 mr-2" />
-              Договоры
-            </button>
-            <button
-              onClick={() => {
-                navigate('/archcons')
-                setDrawerOpen(false);
-              }}
-              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
-            >
-              <Description className="w-5 h-5 mr-2" />
-              Архивные договоры
-            </button>
-            <button
-              onClick={() => {
-                setDrawerOpen(false);
-              }}
-              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
-            >
-              <FlashOn className="w-5 h-5 mr-2" />
-              Электр
-            </button>
-            <button
-              onClick={() => {
-                setDrawerOpen(false);
-              }}
-              className="flex items-center w-full px-3 py-2 rounded-md hover:bg-primary/10 transition"
-            >
-              <Water className="w-5 h-5 mr-2" />
-              Вода
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Top KPI cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">Общий долг <span className="text-sm text-muted-foreground">(всего)</span></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatSum(statistics.totalDebt)}</div>
+            <div className="mt-2 text-sm text-muted-foreground">Актуальная сумма просроченных платежей</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">Доходы</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between">
+                <div className="text-sm text-muted-foreground">За месяц</div>
+                <div className="font-medium">{formatSum(statistics.totalIncomeMonth)}</div>
+              </div>
+              <div className="flex justify-between">
+                <div className="text-sm text-muted-foreground">За год</div>
+                <div className="font-medium">{formatSum(statistics.totalIncomeYear)}</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Занятость здания</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-lg font-bold">{statistics.occupiedArea} м²</div>
+                <div className="text-sm text-muted-foreground">из {statistics.totalArea} м²</div>
+              </div>
+              <div className="w-32">
+                <div className="text-sm font-medium mb-2">{statistics.occupancyPercentage}%</div>
+                <Progress value={Math.min(Math.max(statistics.occupancyPercentage, 0), 100)} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      {/* Debts grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Электроэнергия</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Общая сумма</span>
+                <span>{formatSum(debts.electricity?.totalElectrcy ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Платежи</span>
+                <span>{formatSum(debts.electricity?.totalPayments ?? 0)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Долг</span>
+                <span>{formatSum(debts.electricity?.totalDebt ?? 0)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Водоснабжение</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Общая сумма</span>
+                <span>{formatSum(debts.water?.totalSuv ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Платежи</span>
+                <span>{formatSum(debts.water?.totalPayments ?? 0)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Долг</span>
+                <span>{formatSum(debts.water?.totalDebt ?? 0)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Газ</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Общая сумма</span>
+                <span>{formatSum(debts.gas?.totalGas ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Платежи</span>
+                <span>{formatSum(debts.gas?.totalPayments ?? 0)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Долг</span>
+                <span>{formatSum(debts.gas?.totalDebt ?? 0)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Налоги</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Общая сумма</span>
+                <span>{formatSum(debts.tax?.totalTax ?? 0)}</span>
+              </div>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Платежи</span>
+                <span>{formatSum(debts.tax?.totalPayments ?? 0)}</span>
+              </div>
+              <div className="flex justify-between font-medium">
+                <span>Долг</span>
+                <span>{formatSum(debts.tax?.totalDebt ?? 0)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator />
+
+      {/* Management companies */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(debts.management?.companies ?? []).map((c, i) => (
+          <Card key={i}>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>{c.company}</span>
+                <Badge>{Math.round((c.needToPay / (c.accrualBase || 1)) * 100) || 0}%</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-sm text-muted-foreground">База начислений</div>
+                  <div className="font-medium">{formatSum(c.accrualBase)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Нужно оплатить</div>
+                  <div className="font-medium">{formatSum(c.needToPay)}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm text-muted-foreground">Оплачено</div>
+                  <div className="font-medium">{formatSum(c.paid)}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-muted-foreground">Долг</div>
+                  <div className="font-medium">{formatSum(c.debt)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Loading state */}
+      {loading && (
+        <div className="text-sm text-muted-foreground">Загрузка данных...</div>
+      )}
     </div>
   );
 }
