@@ -101,6 +101,17 @@ const AddPaymentModal = ({ isOpen, onClose, gasId, onSuccess }) => {
     setShowDropdown(true);
   };
 
+  // Функция для форматирования числа
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
+  // Обработка изменения суммы
+  const handleAmountChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Удаляем нечисловые символы
+    setAmount(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -115,7 +126,8 @@ const AddPaymentModal = ({ isOpen, onClose, gasId, onSuccess }) => {
       formData.append("contractId", selectedContract._id);
     }
     
-    formData.append("amount", amount);
+    // Отправляем округленное значение суммы
+    formData.append("amount", Math.round(parseFloat(amount) || 0));
     
     if (!selectedContract && searchTerm.trim()) {
       formData.append("name", searchTerm.trim());
@@ -133,7 +145,7 @@ const AddPaymentModal = ({ isOpen, onClose, gasId, onSuccess }) => {
       console.log("Отправляем данные:", {
         gasId,
         contractId: selectedContract?._id,
-        amount,
+        amount: Math.round(parseFloat(amount) || 0),
         name: !selectedContract ? searchTerm.trim() : undefined,
         newImagesCount: images.length
       });
@@ -228,10 +240,10 @@ const AddPaymentModal = ({ isOpen, onClose, gasId, onSuccess }) => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amount ? formatNumber(parseFloat(amount)) : ""}
+                  onChange={handleAmountChange}
                   placeholder="Введите сумму"
                   required
                 />

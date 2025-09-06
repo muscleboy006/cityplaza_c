@@ -77,6 +77,18 @@ export default function AccrualDetailsModal({ accrualId, open, onClose, onSucces
     }
   };
 
+  // Функция для форматирования даты
+  const formatDate = (dateString) => {
+    if (!dateString) return "Не указана";
+    
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ru-RU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -91,8 +103,7 @@ export default function AccrualDetailsModal({ accrualId, open, onClose, onSucces
 
           {accrual && !loading && !error && (
             <div className="space-y-2">
-              <p><b>Год:</b> {accrual.year}</p>
-              <p><b>Месяц:</b> {accrual.month}</p>
+              <p><b>Дата:</b> {formatDate(accrual.date)}</p>
               <p><b>Начисление:</b> {new Intl.NumberFormat("ru-RU").format(accrual.accrualAmount)} сум</p>
               {/* Здесь можно добавить любые другие поля, которые есть у accrual */}
             </div>

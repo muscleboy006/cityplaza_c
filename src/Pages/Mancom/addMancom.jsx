@@ -16,8 +16,19 @@ const ModalAddMancom = ({ api, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Функция для форматирования числа
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "amount") {
+      // Удаляем нечисловые символы
+      const cleanedValue = value.replace(/\D/g, '');
+      setForm((prev) => ({ ...prev, [field]: cleanedValue }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -31,7 +42,7 @@ const ModalAddMancom = ({ api, onSuccess }) => {
       await axios.post(`${api}/man/`, {
         date: form.date,
         mancom: form.mancom,
-        amount: Number(form.amount),
+        amount: Math.round(parseFloat(form.amount) || 0),
       });
       setOpen(false);
       setForm({ date: "", mancom: "", amount: "" });
@@ -85,9 +96,10 @@ const ModalAddMancom = ({ api, onSuccess }) => {
           <div>
             <Label>Сумма</Label>
             <Input
-              type="number"
-              value={form.amount}
+              type="text"
+              value={form.amount ? formatNumber(parseFloat(form.amount)) : ""}
               onChange={(e) => handleChange("amount", e.target.value)}
+              placeholder="Введите сумму"
             />
           </div>
 

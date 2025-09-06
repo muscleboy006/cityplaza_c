@@ -3,11 +3,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import EditAccrualModal from "../Accrual/accrualEditModal";
-import DeleteAccrualModal from "../Accrual/accrualDelModal";
-import AccrualModal from "../Accrual/accrualModal";
 import {
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -16,8 +13,14 @@ import {
 import api from '@/Utils/api';
 import './Contracts.css'
 
+// Utility function to format numbers with thousand separators and no decimal places
+const formatNumber = (value) => {
+  if (!value && value !== 0) return "";
+  const rounded = Math.round(Number(value));
+  return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+};
+
 export default function Contracts() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
   const [allLoadedRows, setAllLoadedRows] = useState([]);
   const [displayRows, setDisplayRows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,19 +42,19 @@ export default function Contracts() {
   const getMonthNames = () => {
     const months = [
       'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
-      'Июль', 'Август', 'Сентябр', 'Октябр', 'Ноябрь', 'Декабрь'
+      'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
     return months;
   };
 
-  // Функция для конвертации названия месяца в номер
-  const getMonthNumberFromName = (monthName) => {
+  // Функция для конвертации номера месяца в название
+  const getMonthNameFromNumber = (monthNumber) => {
     const monthMap = {
-      'Январь': 1, 'Февраль': 2, 'Март': 3, 'Апрель': 4,
-      'Май': 5, 'Июнь': 6, 'Июль': 7, 'Август': 8,
-      'Сентябрь': 9, 'Октябрь': 10, 'Ноябрь': 11, 'Декабрь': 12
+      1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель',
+      5: 'Май', 6: 'Июнь', 7: 'Июль', 8: 'Август',
+      9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь', 12: 'Декабрь'
     };
-    return monthMap[monthName] || null;
+    return monthMap[monthNumber] || null;
   };
 
   // Функция для создания нормализованного ключа месяца
@@ -70,15 +73,17 @@ export default function Contracts() {
     const emptyRow = {
       id: null,
       floor: '',
-      company: '',
-      moveInDate: '',
-      moveOutDate: '',
-      contractAmount: '',
-      contractAmountMinus12: '',
       area: '',
       officeNumber: '',
-      debt: '',
+      contractAmount: '',
+      contractAmountMinus12: '',
+      moveInDate: '',
+      moveOutDate: '',
+      company: '',
+      totalAccruals: '',
+      totalPayments: '',
       monthlyPayments: {},
+      debt: '',
     };
     const paddedData = [...slicedData];
     while (paddedData.length < displayLimit) {
@@ -124,19 +129,18 @@ export default function Contracts() {
         const dataWithId = res.data.data.map((item, index) => {
           const contract = item.contract || item;
           
-          // Обработка начислений по месяцам с учетом строковых названий
+          // Обработка начислений по месяцам
           const monthlyPayments = {};
                     
           if (item.accruals && Array.isArray(item.accruals)) {
             item.accruals.forEach((accrual, accrualIndex) => {
-              const year = accrual.year;
-              const monthName = accrual.month; // "Август", "Июль" и т.д.
-              const amount = accrual.accrualAmount;
+              const accrualDate = new Date(accrual.date);
+              const year = accrualDate.getFullYear();
+              const monthNumber = accrualDate.getMonth() + 1; // getMonth возвращает 0-11, добавляем 1
+              const monthName = getMonthNameFromNumber(monthNumber);
+              const amount = Math.round(accrual.accrualAmount); // Round to whole number
                             
-              // Конвертируем название месяца в номер
-              const monthNumber = getMonthNumberFromName(monthName);
-              
-              if (year && monthNumber && amount) {
+              if (year && monthNumber && amount && monthName) {
                 const monthKey = createMonthKey(year, monthNumber);
                 
                 if (!monthlyPayments[monthKey]) {
@@ -145,7 +149,7 @@ export default function Contracts() {
                 monthlyPayments[monthKey].push({
                   id: accrual._id,
                   amount: amount,
-                  date: accrual.createdAt,
+                  date: accrual.date,
                   description: accrual.description || '',
                   year: year,
                   month: monthNumber,
@@ -157,22 +161,22 @@ export default function Contracts() {
 
           return {
             id: contract._id || `${currentServerPage}_${index + 1}`,
-            floor: contract.floor,
-            area: contract.area + ' м²',
+            floor: Math.round(contract.floor),
+            area: Math.round(contract.area),
             officeNumber: contract.officeNumber,
-            company: contract.company,
-            link: contract.link,
+            contractAmount: Math.round(contract.contractAmount),
+            contractAmountMinus12: Math.round(contract.contractAmountMinus12),
             moveInDate: contract.moveInDate 
               ? new Date(contract.moveInDate).toLocaleDateString('ru-RU') 
               : '',
             moveOutDate: contract.moveOutDate 
               ? new Date(contract.moveOutDate).toLocaleDateString('ru-RU') 
               : '',
-            contractAmount: contract.contractAmount,
-            contractAmountMinus12: contract.contractAmountMinus12,
-            totalAccruals: item.totalAccruals || 0,
-            totalPayments: item.totalPayments || 0,
-            debt: item.debt || 0,
+            totalAccruals: Math.round(item.totalAccruals || 0),
+            totalPayments: Math.round(item.totalPayments || 0),
+            company: contract.company,
+            link: contract.link,
+            debt: Math.round(item.debt || 0),
             monthlyPayments: monthlyPayments,
           };
         });
@@ -188,9 +192,15 @@ export default function Contracts() {
         } else {
           setAllLoadedRows(dataWithId);
         }
+      } else {
+        // Если данных нет, очищаем ряды
+        setAllLoadedRows([]);
+        setHasMoreServerData(false);
       }
     } catch (err) {
       console.error('Ошибка при загрузке контрактов:', err);
+      setAllLoadedRows([]);
+      setHasMoreServerData(false);
     } finally {
       setLoading(false);
     }
@@ -206,16 +216,17 @@ export default function Contracts() {
     const newDisplayRows = paginateDisplayData(allLoadedRows, page);
     setDisplayRows(newDisplayRows);
     
-    if (needMoreServerData(page, allLoadedRows.length)) {
+    if (needMoreServerData(page, allLoadedRows.length) && !loading) {
       const nextServerPage = serverPage + 1;
       setServerPage(nextServerPage);
       loadServerData(nextServerPage, true);
     }
-  }, [allLoadedRows, page, paginateDisplayData, needMoreServerData, serverPage, loadServerData]);
+  }, [allLoadedRows, page, paginateDisplayData, needMoreServerData, serverPage, loadServerData, loading]);
 
   // Обработчик изменения поискового запроса
   useEffect(() => {
     const timeoutId = setTimeout(() => {
+      setLoading(true);
       setPage(1);
       setServerPage(1);
       setHasMoreServerData(true);
@@ -228,6 +239,7 @@ export default function Contracts() {
   // Обработчик изменения года и загрузки фильтров
   useEffect(() => {
     if (filtersLoaded) {
+      setLoading(true);
       setPage(1);
       setServerPage(1);
       setHasMoreServerData(true);
@@ -262,226 +274,140 @@ export default function Contracts() {
   };
 
   const getTotalPagesInfo = () => {
-    const loadedPages = Math.ceil(allLoadedRows.length / displayLimit);
+    const loadedPages = Math.ceil(allLoadedRows.length / displayLimit) || 1;
     if (hasMoreServerData) {
       return `${page} из ${loadedPages}+`;
     }
     return `${page} из ${loadedPages}`;
   };
   
-  const refreshData = useCallback(() => {
+  const refreshData = useCallback(async () => {
+    setLoading(true);
     setPage(1);
     setServerPage(1);
     setHasMoreServerData(true);
     setAllLoadedRows([]);
-    loadServerData(1, false);
-  }, [loadServerData]);
+    await loadAllContracts(1, false);
+  }, [loadAllContracts]);
 
   const handleToggleArchive = async (contractId) => {
     try {
       await axios.patch(`${api}/con/${contractId}/toggle`, { id: contractId });
-      refreshData();
+      await refreshData();
     } catch (err) {
       console.error('Ошибка при архивировании контракта:', err);
+    } finally {
+      setArchiveModalOpen(false);
     }
   };
 
-  // Компонент для отображения ячейки с платежами
-  const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
-    // Добавляем состояния для модалов
-    const [isEditOpen, setIsEditOpen] = useState(false);
-    const [selectedAccrualId, setSelectedAccrualId] = useState(null);
-    const [deleteId, setDeleteId] = useState(null);
-    const [deleteOpen, setDeleteOpen] = useState(false);
-    const [isAddOpen, setIsAddOpen] = useState(false); // Состояние для модала добавления
+  const handleDeleteContract = async (contractId) => {
+    try {
+      await axios.delete(`${api}/con/contracts/${contractId}`);
+      await refreshData();
+    } catch (err) {
+      console.error('Ошибка при удалении контракта:', err);
+    } finally {
+      setDeleteModalOpen(false);
+    }
+  };
 
-    // Функция открытия модалки редактирования
-    const openEditModal = (accrualId) => {
-      setSelectedAccrualId(accrualId);
-      setIsEditOpen(true);
-    };
-
-    // Функция открытия модалки удаления
-    const openDeleteModal = (id) => {
-      setDeleteId(id);
-      setDeleteOpen(true);
-    };
-
-    // Функция открытия модалки добавления
-    const openAddModal = () => {
-      setIsAddOpen(true);
-    };
-
-    // Функция обновления данных
-    const updateData = () => {
-      if (onRefresh) {
-        onRefresh();
-      }
-    };
-    
+  // Компонент для отображения ячейки с платежами (read-only)
+  const PaymentCell = ({ payments, monthName, rowData }) => {
     // Подсчитываем общую сумму для ячейки
     const totalAmount = payments?.length > 0 ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0;
 
-    // Извлекаем год и месяц из monthName для модала добавления
-    const [monthDisplayName, yearStr] = monthName.split(' ');
-    const year = parseInt(yearStr);
-    
     // Пустые строки не должны быть кликабельными
     if (!rowData.id || rowData.id.startsWith('empty')) {
       return <div className="w-full h-8 border border-dashed bg-gray-100"></div>;
     }
 
-    // Все ячейки теперь кликабельны
+    // Ячейка для отображения платежей в режиме read-only
     return (
-      <>
-        <Dialog>
-          <DialogTrigger asChild>
-            <div 
-              className={`w-full h-8 border rounded flex items-center justify-center text-xs font-medium cursor-pointer relative ${
-                !payments || payments.length === 0
-                  ? 'bg-gray-50 hover:bg-gray-100 border-dashed' // Пустые ячейки
-                  : payments.length === 1 
-                  ? 'bg-green-100 hover:bg-green-200' 
-                  : 'bg-blue-100 hover:bg-blue-200'
-              }`}
-              title={
-                !payments || payments.length === 0
-                  ? `Нет платежей за ${monthName}. Нажмите для добавления`
-                  : payments.length === 1 
-                  ? `${totalAmount.toLocaleString()} сум за ${monthName}`
-                  : `${payments.length} платежей на сумму ${totalAmount.toLocaleString()} сум за ${monthName}`
-              }
-            >
-              {!payments || payments.length === 0 ? (
-                <span className="text-white"></span>
-              ) : payments.length === 1 ? (
-                // Показываем полную сумму без сокращения
-                <span>{totalAmount.toLocaleString()}</span>
-              ) : (
-                <div className="text-center">
-                  <div>{payments.length}</div>
-                  <div className="text-[8px]">{totalAmount.toLocaleString()}</div>
-                </div>
-              )}
-            </div>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader className="flex flex-row items-center justify-between">
-              <DialogTitle>Платежи за {monthName}</DialogTitle>
-              {/* Кнопка добавления в верхний правый угол */}
-              <Button
-                onClick={openAddModal}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700"
-              >
-                Добавить
-              </Button>
-            </DialogHeader>
-            <div className="space-y-2"> 
-              {payments && payments.length > 0 ? (
-                <>
-                  {payments.map((payment, index) => (
-                    <div key={payment.id || index} className="flex justify-between items-center p-2 border rounded">
-                      <div className="flex-1">
-                        <div className="font-medium">{payment.amount.toLocaleString()} сум</div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(payment.date).toLocaleDateString('ru-RU')}
-                        </div>
-                        {payment.description && (
-                          <div className="text-sm text-gray-600">{payment.description}</div>
-                        )}
-                        {payment.monthName && (
-                          <div className="text-xs text-gray-400">({payment.monthName})</div>
-                        )}
+      <Dialog>
+        <DialogTrigger asChild>
+          <div 
+            className={`w-full h-8 border rounded flex items-center justify-center text-xs font-medium cursor-pointer relative ${
+              !payments || payments.length === 0
+                ? 'bg-gray-50 hover:bg-gray-100 border-dashed' // Пустые ячейки
+                : payments.length === 1 
+                ? 'bg-green-100 hover:bg-green-200' 
+                : 'bg-blue-100 hover:bg-blue-200'
+            }`}
+            title={
+              !payments || payments.length === 0
+                ? `Нет платежей за ${monthName}`
+                : payments.length === 1 
+                ? `${formatNumber(totalAmount)} сум за ${monthName}`
+                : `${payments.length} платежей на сумму ${formatNumber(totalAmount)} сум за ${monthName}`
+            }
+          >
+            {!payments || payments.length === 0 ? (
+              <span className="text-white"></span>
+            ) : payments.length === 1 ? (
+              // Показываем полную сумму без сокращения
+              <span>{formatNumber(totalAmount)}</span>
+            ) : (
+              <div className="text-center">
+                <div>{payments.length}</div>
+                <div className="text-[8px]">{formatNumber(totalAmount)}</div>
+              </div>
+            )}
+          </div>
+        </DialogTrigger>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Платежи за {monthName}</DialogTitle>
+            <DialogDescription className="sr-only">Детали платежей за выбранный месяц.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2"> 
+            {payments && payments.length > 0 ? (
+              <>
+                {payments.map((payment, index) => (
+                  <div key={payment.id || index} className="flex justify-between items-center p-2 border rounded">
+                    <div className="flex-1">
+                      <div className="font-medium">{formatNumber(payment.amount)} сум</div>
+                      <div className="text-sm text-gray-500">
+                        {new Date(payment.date).toLocaleDateString('ru-RU')}
                       </div>
-                      <div className="flex gap-2 ml-4">
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openEditModal(payment.id)}
-                        >
-                          Редактировать
-                        </Button>
-                        <Button 
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => openDeleteModal(payment.id)}
-                        >
-                          Удалить
-                        </Button>
-                      </div>
+                      {payment.description && (
+                        <div className="text-sm text-gray-600">{payment.description}</div>
+                      )}
+                      {payment.monthName && (
+                        <div className="text-xs text-gray-400">({payment.monthName})</div>
+                      )}
                     </div>
-                  ))}
-                  <div className="border-t pt-2 font-medium">
-                    Итого: {totalAmount.toLocaleString()} сум
                   </div>
-                </>
-              ) : (
-                <div className="text-center text-gray-500 py-4">
-                  Нет платежей за этот месяц
+                ))}
+                <div className="border-t pt-2 font-medium">
+                  Итого: {formatNumber(totalAmount)} сум
                 </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Модал добавления начисления */}
-        <AccrualModal
-          open={isAddOpen}
-          onClose={() => setIsAddOpen(false)}
-          contractId={rowData.id}
-          contractAmount={rowData.contractAmount}
-          onSuccess={() => {
-            setIsAddOpen(false);
-            updateData();
-          }}
-          initialYear={year}
-          initialMonth={monthDisplayName}
-        />
-
-        {/* Модал редактирования */}
-        {rowData && (
-          <EditAccrualModal
-            open={isEditOpen}
-            onClose={() => setIsEditOpen(false)}
-            accrualId={selectedAccrualId}
-            contractId={rowData.id}
-            onSuccess={() => {
-              setIsEditOpen(false);
-              updateData();
-            }}
-          />
-        )}
-
-        {/* Модал удаления */}
-        <DeleteAccrualModal
-          open={deleteOpen}
-          accrualId={deleteId}
-          onOpenChange={setDeleteOpen}
-          onSuccess={() => {
-            setDeleteOpen(false);
-            updateData();
-          }}
-        />
-      </>
+              </>
+            ) : (
+              <div className="text-center text-gray-500 py-4">
+                Нет платежей за этот месяц
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     );
   };
 
   return (
     <div className="flex flex-col h-screen main-container">
-      <style jsx global>{`
-  /* ГЛОБАЛЬНЫЕ СТИЛИ ДЛЯ УСТРАНЕНИЯ ДВОЙНОГО СКРОЛЛБАРА */
-  html, body {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-  }
-  
-  #root, #__next, [data-reactroot] {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-  }
-`}</style>
       <style jsx>{`
+        /* Global styles to eliminate double scrollbar */
+        html, body {
+          overflow-x: hidden !important;
+          max-width: 100vw !important;
+        }
+        
+        #root, #__next, [data-reactroot] {
+          overflow-x: hidden !important;
+          max-width: 100vw !important;
+        }
+        
         /* Custom Scrollbar Styling */
         .table-container::-webkit-scrollbar {
           height: 12px;
@@ -525,14 +451,15 @@ export default function Contracts() {
           background: #f9fafb;
           pointer-events: none;
         }
-      `}</style>
+      `}
+      </style>
       {/* Main Content */}
       <main className="flex-1 overflow-hidden p-4 bg-background">
             {/* Table Container with Fixed Scrollbar */}
             <div className="relative h-[calc(100vh-150px)] table-container" style={{
               overflowX: 'auto',
               overflowY: 'auto',
-              contain: 'strict' // Это ключевое свойство!
+              contain: 'strict'
             }}>
               <div style={{ 
                 minWidth: '2000px',
@@ -541,16 +468,7 @@ export default function Contracts() {
                 <Table className="border-collapse" style={{ width: '2000px' }}>
                   <TableHeader className="sticky-header">
                     <TableRow>
-                      <TableHead className="w-[60px]">Этаж</TableHead>
-                      <TableHead className="w-[100px]">Компания</TableHead>
-                      <TableHead className="w-[100px]">Дата заезда</TableHead>
-                      <TableHead className="w-[100px]">Дата выезда</TableHead>
-                      <TableHead className="w-[100px]">Сумма по договору</TableHead>
-                      <TableHead className="w-[100px]">Сумма 12%</TableHead>
-                      <TableHead className="w-[80px]">Квадратура</TableHead>
-                      <TableHead className="w-[80px]">Номер офиса</TableHead>
-                      <TableHead className="w-[100px]">Долг</TableHead>
-                      <TableHead className="w-[100px] year-selector-header">
+                      <TableHead className="w-[60px]">Этаж</TableHead><TableHead className="w-[80px]">Квадратура</TableHead><TableHead className="w-[80px]">Номер офиса</TableHead><TableHead className="w-[100px]">Сумма по договору</TableHead><TableHead className="w-[100px]">Сумма 12%</TableHead><TableHead className="w-[100px]">Дата заезда</TableHead><TableHead className="w-[100px]">Дата выезда</TableHead><TableHead className="w-[100px]">Компания</TableHead><TableHead className="w-[100px]">Начисления</TableHead><TableHead className="w-[100px]">Общая сумма</TableHead><TableHead className="w-[100px]">Долг</TableHead><TableHead className="w-[100px] year-selector-header">
                         <select 
                           value={selectedYear} 
                           onChange={(e) => setSelectedYear(parseInt(e.target.value))}
@@ -563,13 +481,7 @@ export default function Contracts() {
                             ))
                           }
                         </select>
-                      </TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                      {getMonthNames().map((month, index) => (
-                        <TableHead key={index} className="text-center w-24 min-w-24 p-0">
-                          {month}
-                        </TableHead>
-                      ))}
+                      </TableHead><TableHead className="w-[50px]"></TableHead>{getMonthNames().map((month, index) => (<TableHead key={index} className="text-center w-24 min-w-24 p-0">{month}</TableHead>))}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="">
@@ -584,89 +496,10 @@ export default function Contracts() {
 
                       // Пустые строки
                       if (!row.id || row.id.startsWith('empty')) {
-                        return (
-                          <TableRow key={`row-${row.id}`} className="empty-row">
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            <TableCell className="border border-dashed bg-gray-100"></TableCell>
-                            {getMonthNames().map((monthName, monthIndex) => (
-                              <TableCell key={monthIndex} className="text-center p-0 w-24 min-w-24">
-                                <div className="w-full h-8 border border-dashed bg-gray-100"></div>
-                              </TableCell>
-                            ))}
-                          </TableRow>
-                        );
+                        return <TableRow key={`row-${row.id}`} className="empty-row"><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell><TableCell className="border border-dashed bg-gray-100"></TableCell>{getMonthNames().map((monthName, monthIndex) => (<TableCell key={monthIndex} className="text-center p-0 w-24 min-w-24"><div className="w-full h-8 border border-dashed bg-gray-100"></div></TableCell>))}</TableRow>;
                       }
 
-                      return (
-                        <TableRow
-                          key={`row-${row.id}`}
-                          className="cursor-pointer hover:bg-primary/10 transition"
-                        >
-                          <TableCell>{row.floor}</TableCell>
-                          <TableCell
-                            className="hover:underline cursor-pointer"
-                            onClick={() => navigate(`/con/${row.id}`)}
-                          >
-                            {row.company}
-                          </TableCell>
-                          <TableCell>{row.moveInDate}</TableCell>
-                          <TableCell>{row.moveOutDate || "Нет"}</TableCell>
-                          <TableCell>{row.contractAmount?.toLocaleString()}</TableCell>
-                          <TableCell>{row.contractAmountMinus12?.toLocaleString()}</TableCell>
-                          <TableCell>{row.area}</TableCell>
-                          <TableCell>{row.officeNumber}</TableCell>
-                          <TableCell
-                            className={row.debt > 0 ? "text-red-600 font-medium" : "text-green-600"}
-                          >
-                            {row.debt?.toLocaleString()}
-                          </TableCell>
-                          <TableCell></TableCell> {/* Empty cell for year selector alignment */}
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <span className="sr-only">Открыть меню</span>
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedContractId(row.id);
-                                  setTimeout(() => setArchiveModalOpen(true), 0);
-                                }}>Разархивировать</DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => {
-                                  setSelectedContractId(row.id);
-                                  setTimeout(() => setDeleteModalOpen(true), 0);
-                                }}>Удалить</DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                          {getMonthNames().map((monthName, monthIndex) => {
-                            const monthKey = createMonthKey(selectedYear, monthIndex + 1);
-                            const payments = filteredPayments[monthKey] || [];
-                                                        
-                            return (
-                              <TableCell key={monthIndex} className="text-center p-0 w-24 min-w-24">
-                                <PaymentCell 
-                                  payments={payments} 
-                                  monthName={`${monthName} ${selectedYear}`}
-                                  monthKey={monthKey}
-                                  rowData={row}
-                                  onRefresh={refreshData}
-                                />
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      );
+                      return <TableRow key={`row-${row.id}`} className="cursor-pointer hover:bg-primary/10 transition"><TableCell>{formatNumber(row.floor)}</TableCell><TableCell>{formatNumber(row.area)} м²</TableCell><TableCell>{row.officeNumber}</TableCell><TableCell>{formatNumber(row.contractAmount)}</TableCell><TableCell>{formatNumber(row.contractAmountMinus12)}</TableCell><TableCell>{row.moveInDate}</TableCell><TableCell>{row.moveOutDate || "Нет"}</TableCell><TableCell className="hover:underline cursor-pointer" onClick={() => navigate(`/con/${row.id}`)} >{row.company}</TableCell><TableCell>{formatNumber(row.totalAccruals)}</TableCell><TableCell>{formatNumber(row.totalPayments)}</TableCell><TableCell className={row.debt > 0 ? "text-red-600 font-medium" : "text-green-600"} >{formatNumber(row.debt)}</TableCell><TableCell /><TableCell className="text-right"><DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" className="h-8 w-8 p-0"><span className="sr-only">Открыть меню</span><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => {setSelectedContractId(row.id); setArchiveModalOpen(true); }}>Разархивировать</DropdownMenuItem><DropdownMenuItem onClick={() => {setSelectedContractId(row.id); setDeleteModalOpen(true); }}>Удалить</DropdownMenuItem></DropdownMenuContent></DropdownMenu></TableCell>{getMonthNames().map((monthName, monthIndex) => { const monthKey = createMonthKey(selectedYear, monthIndex + 1); const payments = filteredPayments[monthKey] || []; return <TableCell key={monthIndex} className="text-center p-0 w-24 min-w-24"><PaymentCell payments={payments} monthName={`${monthName} ${selectedYear}`} rowData={row} /></TableCell>; })}</TableRow>;
                     })}
                   </TableBody>
                 </Table>
@@ -715,14 +548,12 @@ export default function Contracts() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Подтверждение разархивации</DialogTitle>
+            <DialogDescription className="sr-only">Подтверждение разархивации контракта.</DialogDescription>
           </DialogHeader>
           <p>Вы уверены, что хотите разархивировать этот контракт?</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setArchiveModalOpen(false)}>Отмена</Button>
-            <Button onClick={async () => {
-              await handleToggleArchive(selectedContractId);
-              setArchiveModalOpen(false);
-            }}>Разархивировать</Button>
+            <Button onClick={() => handleToggleArchive(selectedContractId)}>Разархивировать</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -732,19 +563,12 @@ export default function Contracts() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Подтверждение удаления</DialogTitle>
+            <DialogDescription className="sr-only">Подтверждение удаления контракта.</DialogDescription>
           </DialogHeader>
           <p>Вы уверены, что хотите удалить этот контракт?</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Отмена</Button>
-            <Button variant="destructive" onClick={async () => {
-              try {
-                await axios.delete(`${api}/con/contracts/${selectedContractId}`);
-                refreshData();
-              } catch (err) {
-                console.error('Ошибка при удалении контракта:', err);
-              }
-              setDeleteModalOpen(false);
-            }}>Удалить</Button>
+            <Button variant="destructive" onClick={() => handleDeleteContract(selectedContractId)}>Удалить</Button>
           </div>
         </DialogContent>
       </Dialog>

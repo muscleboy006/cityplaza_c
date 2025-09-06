@@ -117,6 +117,11 @@ const ClientTable = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
   };
 
+  // Функция для форматирования чисел
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
   if (loading) return <p className="text-center">Загрузка...</p>;
   if (error) return <p className="text-red-500">{error}</p>;
 
@@ -156,7 +161,6 @@ const ClientTable = () => {
                     <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
                       Долг
                     </th>
-                    {/* ✅ Убрали колонку "В процентах" */}
                     <th className="h-12 px-4 text-left font-medium text-muted-foreground">
                       Действия
                     </th>
@@ -173,9 +177,9 @@ const ClientTable = () => {
                     >
                       <td className="p-4">{item.year}</td>
                       <td className="p-4">{item.month}</td>
-                      <td className="p-4 font-semibold text-lg">{item.totalAmount} UZS</td>
-                      <td className="p-4 font-semibold text-lg">{item.totalTax} UZS</td>
-                      <td className="p-4 font-semibold text-lg">{item.balance} UZS</td>
+                      <td className="p-4 font-semibold text-lg">{formatNumber(item.totalAmount)} UZS</td>
+                      <td className="p-4 font-semibold text-lg">{formatNumber(item.totalTax)} UZS</td>
+                      <td className="p-4 font-semibold text-lg">{formatNumber(item.debt)} UZS</td>
                       <td className="p-4">
                         <div className="flex items-center gap-1">
                           <Button
@@ -213,7 +217,6 @@ const ClientTable = () => {
                                 <table className="w-full text-sm">
                                   <thead>
                                     <tr className="border-b">
-                                      {/* ✅ Убрали "Компания", добавили "Дата" */}
                                       <th className="text-left py-2 px-2 font-medium text-muted-foreground">
                                         Дата
                                       </th>
@@ -245,7 +248,7 @@ const ClientTable = () => {
                                         </td>
                                         <td className="py-2 px-2 w-40">
                                           <Badge variant="outline" className="font-mono">
-                                            {pay.amount} UZS
+                                            {formatNumber(pay.amount)} UZS
                                           </Badge>
                                         </td>
                                         <td className="py-2 px-2">

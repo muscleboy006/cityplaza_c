@@ -188,6 +188,17 @@ const EditPaymentModal = ({ isOpen, onClose, gasId, paymentId, onSuccess }) => {
     setShowDropdown(true);
   };
 
+  // Функция для форматирования числа
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
+  // Обработка изменения суммы
+  const handleAmountChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Удаляем нечисловые символы
+    setAmount(value);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -202,7 +213,8 @@ const EditPaymentModal = ({ isOpen, onClose, gasId, paymentId, onSuccess }) => {
       formData.append("contractId", selectedContract._id);
     }
     
-    formData.append("amount", amount);
+    // Отправляем округленное значение суммы
+    formData.append("amount", Math.round(parseFloat(amount) || 0));
     
     if (!selectedContract && searchTerm.trim()) {
       formData.append("name", searchTerm.trim());
@@ -242,7 +254,7 @@ const EditPaymentModal = ({ isOpen, onClose, gasId, paymentId, onSuccess }) => {
         gasId,
         paymentId,
         contractId: selectedContract?._id,
-        amount,
+        amount: Math.round(parseFloat(amount) || 0),
         name: !selectedContract ? searchTerm.trim() : undefined,
         newImagesCount: images.length,
         existingImagesCount: existingImages.length,
@@ -342,10 +354,10 @@ const EditPaymentModal = ({ isOpen, onClose, gasId, paymentId, onSuccess }) => {
                   Сумма *
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  value={amount ? formatNumber(parseFloat(amount)) : ""}
+                  onChange={handleAmountChange}
                   placeholder="Введите сумму"
                   required
                 />

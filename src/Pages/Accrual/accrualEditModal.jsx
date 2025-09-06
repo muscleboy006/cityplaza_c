@@ -4,14 +4,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import api from "@/Utils/api";
 
 export default function EditAccrualModal({ open, onClose, accrualId, contractId, onSuccess }) {
-  const months = [
-    "Январь","Февраль","Март","Апрель","Май","Июнь",
-    "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"
-  ];
+  const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
 
   const [form, setForm] = useState({
-    year: new Date().getFullYear(),
-    month: months[new Date().getMonth()],
+    date: currentDate,
     accrualAmount: "",
   });
   const [loading, setLoading] = useState(false);
@@ -34,8 +30,7 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
         .then(res => {
           const data = res.data.data;
           setForm({
-            year: data.year,
-            month: data.month,
+            date: data.date ? new Date(data.date).toISOString().split('T')[0] : currentDate,
             accrualAmount: data.accrualAmount.toString(),
           });
         })
@@ -46,7 +41,6 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
         .finally(() => setLoading(false));
     }
   }, [open, accrualId]);
-
 
   // Обработка изменения числового поля
   const handleNumberChange = (e) => {
@@ -74,9 +68,8 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
 
     try {
       const response = await axios.put(`${api}/acc/accruals/${accrualId}`, {
-        year: form.year,
-        month: form.month,
-        accrualAmount: formatNumber(accrualAmount),
+        date: form.date,
+        accrualAmount: Number(form.accrualAmount),
         contractId
       });
 
@@ -98,8 +91,7 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
   // Сброс формы
   const handleClose = () => {
     setForm({
-      year: new Date().getFullYear(),
-      month: months[new Date().getMonth()],
+      date: currentDate,
       accrualAmount: "",
     });
     setError("");
@@ -115,30 +107,17 @@ export default function EditAccrualModal({ open, onClose, accrualId, contractId,
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium">Год</label>
+            <label className="block text-sm font-medium">Дата</label>
             <input
-              type="number"
-              name="year"
-              value={form.year}
+              type="date"
+              name="date"
+              value={form.date}
               onChange={handleChange}
               className="w-full border rounded px-2 py-1"
-              min="2000"
-              max="2100"
+              min="2000-01-01"
+              max="2100-12-31"
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Месяц</label>
-            <select
-              name="month"
-              value={form.month}
-              onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
-            >
-              {months.map(m => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
           </div>
 
           <div>

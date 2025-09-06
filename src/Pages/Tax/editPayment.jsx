@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload } from "lucide-react";
+import { X, Upload, Calendar, DollarSign } from "lucide-react";
 import axios from "axios";
 import api from "@/Utils/api";
 
 const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
   const [amount, setAmount] = useState("");
-  const [paymentDate, setPaymentDate] = useState(""); // ✅ добавлено
+  const [paymentDate, setPaymentDate] = useState("");
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [originalImages, setOriginalImages] = useState([]);
@@ -37,6 +37,18 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
     return fullUrl;
   };
 
+  // Функция для форматирования даты в формат YYYY-MM-DD
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split("T")[0]; // Возвращает YYYY-MM-DD
+    } catch {
+      return "";
+    }
+  };
+
   const fetchPaymentData = async () => {
     try {
       setLoadingPayment(true);
@@ -51,7 +63,7 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
       }
 
       setAmount(payment.amount?.toString() || "");
-      setPaymentDate(payment.date || ""); // ✅ загружаем дату
+      setPaymentDate(formatDateForInput(payment.date)); // Форматируем дату
 
       const processedImages = (payment.images || [])
         .map(processImageUrl)
@@ -66,6 +78,17 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
     } finally {
       setLoadingPayment(false);
     }
+  };
+
+  // Функция для форматирования числа
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
+  // Обработка изменения суммы
+  const handleAmountChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Удаляем нечисловые символы
+    setAmount(value);
   };
 
   const handleImageChange = (e) => {
@@ -95,8 +118,8 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
     }
 
     const formData = new FormData();
-    formData.append("amount", amount);
-    formData.append("date", paymentDate); // ✅ отправляем дату
+    formData.append("amount", Math.round(parseFloat(amount) || 0));
+    formData.append("date", paymentDate);
 
     images.forEach((img) => {
       formData.append("images", img);
@@ -186,15 +209,18 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Amount */}
               <div className="space-y-2">
-                <label className="text-sm font-medium">Сумма *</label>
-                <input
-                  type="number"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Введите сумму"
-                  required
-                />
+                <label className="text-sm font-medium">Сумма <span className="text-red-500">*</span></label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full rounded-md border px-3 py-2 text-sm pl-10"
+                    value={amount ? formatNumber(parseFloat(amount)) : ""}
+                    onChange={handleAmountChange}
+                    placeholder="Введите сумму"
+                    required
+                  />
+                  <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </div>
               </div>
 
               {/* Date */}
@@ -202,13 +228,16 @@ const EditPaymentModal = ({ isOpen, onClose, taxId, paymentId, onSuccess }) => {
                 <label className="text-sm font-medium">
                   Дата платежа <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="date"
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  value={paymentDate}
-                  onChange={(e) => setPaymentDate(e.target.value)}
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="date"
+                    className="w-full rounded-md border px-3 py-2 text-sm pl-10"
+                    value={paymentDate}
+                    onChange={(e) => setPaymentDate(e.target.value)}
+                    required
+                  />
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                </div>
               </div>
 
               {/* Images */}

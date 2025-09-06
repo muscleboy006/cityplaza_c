@@ -7,6 +7,30 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import api from "@/Utils/api";
 
+// Utility function to format numbers with thousand separators and no trailing zeros
+const formatNumber = (value) => {
+  if (!value && value !== 0) return "";
+  const num = parseFloat(value);
+  if (isNaN(num)) return "";
+  // Format with up to 2 decimal places
+  let formatted = num.toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  // Remove trailing zeros and decimal point if unnecessary
+  formatted = formatted.replace(/,0+$/, "").replace(/,0+/, ",");
+  return formatted;
+};
+
+// Utility function to parse formatted numbers back to raw float
+const parseNumber = (value) => {
+  if (!value) return "";
+  // Remove thousand separators (spaces in ru-RU locale) and convert to number
+  const cleanedValue = value.replace(/\s/g, "").replace(",", ".");
+  const num = parseFloat(cleanedValue);
+  return isNaN(num) ? "" : num;
+};
+
 export default function EditContractPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,7 +56,7 @@ export default function EditContractPage() {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) return "";
-      return date.toISOString().split('T')[0];
+      return date.toISOString().split("T")[0];
     } catch (err) {
       console.error("Ошибка форматирования даты:", err);
       return "";
@@ -44,13 +68,13 @@ export default function EditContractPage() {
     const fetchContract = async () => {
       try {
         console.log(`Загружаем контракт с ID: ${id}`);
-        
+
         const res = await fetch(`${api}/con/contracts/${id}`);
-        
+
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
-        
+
         const responseData = await res.json();
         console.log("Полученные данные с сервера:", responseData);
 
@@ -80,13 +104,12 @@ export default function EditContractPage() {
           link: String(contract.link || ""),
           moveInDate: formatDate(contract.moveInDate),
           moveOutDate: formatDate(contract.moveOutDate),
-          contractAmount: String(contract.contractAmount || ""),
-          contractAmountMinus12: String(contract.contractAmountMinus12 || ""),
+          contractAmount: formatNumber(contract.contractAmount || ""),
+          contractAmountMinus12: formatNumber(contract.contractAmountMinus12 || ""),
         };
 
         console.log("Данные для формы:", newFormData);
         setFormData(newFormData);
-        
       } catch (err) {
         console.error("Ошибка при загрузке договора:", err);
         setError(`Ошибка при загрузке договора: ${err.message}`);
@@ -107,10 +130,17 @@ export default function EditContractPage() {
     const { name, value } = e.target;
     let updatedData = { ...formData, [name]: value };
 
-    // Автоматический расчет суммы минус 12%
+    // Handle number fields with formatting
     if (name === "contractAmount") {
-      const amount = parseFloat(value) || 0;
-      updatedData.contractAmountMinus12 = (amount * 0.88).toFixed(2);
+      const rawValue = parseNumber(value); // Parse the input to a number
+      if (rawValue !== "") {
+        const amount = parseFloat(rawValue) || 0;
+        updatedData.contractAmount = formatNumber(amount); // Format for display
+        updatedData.contractAmountMinus12 = formatNumber(amount * 0.88); // Format calculated value
+      } else {
+        updatedData.contractAmount = "";
+        updatedData.contractAmountMinus12 = "";
+      }
     }
 
     console.log(`Изменение поля ${name}: ${value}`);
@@ -121,14 +151,21 @@ export default function EditContractPage() {
     e.preventDefault();
 
     try {
-      console.log("Отправляем данные:", formData);
-      
+      // Prepare data for submission by parsing formatted numbers
+      const submitData = {
+        ...formData,
+        contractAmount: parseNumber(formData.contractAmount),
+        contractAmountMinus12: parseNumber(formData.contractAmountMinus12),
+      };
+
+      console.log("Отправляем данные:", submitData);
+
       const res = await fetch(`${api}/con/contracts/${id}`, {
         method: "PUT",
-        headers: { 
-          "Content-Type": "application/json" 
+        headers: {
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(submitData),
       });
 
       if (!res.ok) {
@@ -138,7 +175,6 @@ export default function EditContractPage() {
 
       console.log("Договор успешно обновлен");
       navigate(-1);
-      
     } catch (err) {
       console.error("Ошибка при изменении договора:", err);
       alert(`Не удалось изменить договор: ${err.message}`);
@@ -204,8 +240,17 @@ export default function EditContractPage() {
               { name: "link", label: "Ссылка" },
               { name: "moveInDate", label: "Въезд", type: "date" },
               { name: "moveOutDate", label: "Выезд", type: "date" },
-              { name: "contractAmount", label: "Сумма договора", type: "number", step: "0.01" },
-              { name: "contractAmountMinus12", label: "К получению (-12%)", type: "number", step: "0.01", disabled: true },
+              {
+                name: "contractAmount",
+                label: "Сумма договора",
+                type: "text", // Use text for formatted input
+              },
+              {
+                name: "contractAmountMinus12",
+                label: "К получению (-12%)",
+                type: "text", // Use text for formatted input
+                disabled: true,
+              },
             ].map(({ name, label, type = "text", step, disabled }) => (
               <div key={name}>
                 <Label htmlFor={name} className="text-base font-semibold">

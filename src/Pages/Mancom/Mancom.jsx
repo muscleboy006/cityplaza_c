@@ -21,7 +21,6 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  RefreshCcw,
   MoreHorizontal,
   Edit,
   Trash2,
@@ -138,6 +137,7 @@ export default function MancomDashboard() {
   const handleDeleteSuccess = (id) => {
     // ✅ Здесь обнови список
     console.log("Удалено:", id);
+    fetchData();
   };
 
   return (
@@ -166,17 +166,12 @@ export default function MancomDashboard() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline" onClick={fetchData} disabled={loading}>
-            <RefreshCcw className="h-4 w-4 mr-2" />
-            Обновить
-          </Button>
-
           <ModalAddMancom api={api} onSuccess={fetchData} />
         </div>
       </div>
 
       {/* Loading / Error */}
-      {loading && (
+      {(loading && !data) && (
         <div className="flex items-center justify-center h-24">
           <Loader2 className="animate-spin h-6 w-6 text-muted-foreground" />
         </div>
@@ -188,42 +183,53 @@ export default function MancomDashboard() {
       )}
 
       {/* Summary Cards */}
-      {!loading && data && (
+      {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[c1, c2].map((c, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <CardTitle>
-                  {c?.company} ({i === 0 ? "7%" : "2%"})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">База начислений</span>
-                  <span>{fmtMoney(c?.accrualBase)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">К оплате</span>
-                  <span className="font-semibold">{fmtMoney(c?.needToPay)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Оплачено ({year})</span>
-                  <span>{fmtMoney(c?.paid)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Долг / Переплата</span>
-                  <Badge variant={Number(c?.debt) >= 0 ? "destructive" : "default"}>
-                    {fmtMoney(c?.debt)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {[c1, c2].map((c, i) => {
+            const debt = Number(c?.debt);
+            let badgeClass;
+            if (debt > 0) {
+              badgeClass = "bg-destructive text-destructive-foreground";
+            } else if (debt < 0) {
+              badgeClass = "bg-green-500 text-white";
+            } else {
+              badgeClass = "bg-secondary text-secondary-foreground";
+            }
+            return (
+              <Card key={i}>
+                <CardHeader>
+                  <CardTitle>
+                    {c?.company} ({i === 0 ? "7%" : "2%"})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">База начислений</span>
+                    <span>{fmtMoney(c?.accrualBase)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">К оплате</span>
+                    <span className="font-semibold">{fmtMoney(c?.needToPay)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Оплачено ({year})</span>
+                    <span>{fmtMoney(c?.paid)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Долг / Переплата</span>
+                    <Badge className={badgeClass}>
+                      {fmtMoney(c?.debt)}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       {/* Payments Tables */}
-      {!loading && data && (
+      {data && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[{ title: COMPANY_1, rows: company1Payments }, { title: COMPANY_2, rows: company2Payments }].map((table) => (
             <Card key={table.title}>
@@ -270,7 +276,7 @@ export default function MancomDashboard() {
                                     Редактировать
                                   </DropdownMenuItem>
                                   <DropdownMenuItem 
-                                    onClick={() => openDeleteModal(p)}
+                                    onClick={() => openDeleteModal(p._id)}
                                     className="cursor-pointer text-destructive hover:text-destructive"
                                   >
                                     <Trash2 className="h-4 w-4 mr-2" />
@@ -292,7 +298,7 @@ export default function MancomDashboard() {
       )}
 
       {/* Pagination */}
-      {!loading && data?.payments && (
+      {data?.payments && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Страница <b>{data.payments.page}</b> из <b>{data.payments.totalPages}</b> • Всего:{" "}

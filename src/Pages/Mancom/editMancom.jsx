@@ -25,11 +25,28 @@ const ModalEditMancom = ({ api, item, isOpen, onClose, onSuccess }) => {
   });
   const [loading, setLoading] = useState(false);
 
+  // Функция для форматирования даты в формат YYYY-MM-DD
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "";
+      return date.toISOString().split("T")[0]; // Возвращает YYYY-MM-DD
+    } catch {
+      return "";
+    }
+  };
+
+  // Функция для форматирования числа
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
+  };
+
   // Заполняем форму при получении нового item
   useEffect(() => {
     if (item && isOpen) {
       setForm({
-        date: item.date ? item.date.split("T")[0] : "",
+        date: formatDateForInput(item.date),
         mancom: item.mancom || "",
         amount: item.amount?.toString() || "",
       });
@@ -48,7 +65,13 @@ const ModalEditMancom = ({ api, item, isOpen, onClose, onSuccess }) => {
   }, [isOpen]);
 
   const handleChange = (field, value) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
+    if (field === "amount") {
+      // Удаляем нечисловые символы
+      const cleanedValue = value.replace(/\D/g, '');
+      setForm((prev) => ({ ...prev, [field]: cleanedValue }));
+    } else {
+      setForm((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -68,7 +91,7 @@ const ModalEditMancom = ({ api, item, isOpen, onClose, onSuccess }) => {
       await axios.put(`${api}/man/${item._id}`, {
         date: form.date,
         mancom: form.mancom,
-        amount: Number(form.amount),
+        amount: Math.round(parseFloat(form.amount) || 0),
       });
       
       if (onSuccess) onSuccess();
@@ -124,8 +147,8 @@ const ModalEditMancom = ({ api, item, isOpen, onClose, onSuccess }) => {
           <div>
             <Label>Сумма</Label>
             <Input
-              type="number"
-              value={form.amount}
+              type="text"
+              value={form.amount ? formatNumber(parseFloat(form.amount)) : ""}
               onChange={(e) => handleChange("amount", e.target.value)}
               placeholder="Введите сумму"
             />

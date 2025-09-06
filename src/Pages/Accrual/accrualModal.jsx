@@ -3,18 +3,16 @@ import axios from "axios";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import api from "@/Utils/api";
 
-export default function AccrualModal({ open, onClose, contractId, contractAmount, onSuccess }) {
-  const months = [
-    "Январь","Февраль","Март","Апрель","Май","Июнь",
-    "Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const currentMonth = months[new Date().getMonth()];
-
+export default function AccrualModal({ 
+  open, 
+  onClose, 
+  contractId, 
+  contractAmount, 
+  onSuccess,
+  monthKey // Новый пропс для получения месяца и года
+}) {
   const [form, setForm] = useState({
-    year: currentYear,
-    month: currentMonth,
+    date: "",
     contractAmount: contractAmount,
     accrualAmount: "",
   });
@@ -22,9 +20,21 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
   const [error, setError] = useState("");
   const [moveInDate, setMoveInDate] = useState(null);
 
+  // Форматирование даты из monthKey в формат YYYY-MM-DD
+  const getDefaultDateFromMonthKey = () => {
+    if (!monthKey) return new Date().toISOString().split('T')[0];
+    
+    const [year, month] = monthKey.split('-');
+    return `${year}-${month}-01`; // Первое число месяца
+  };
+
   // Загружаем дату въезда при открытии
   useEffect(() => {
     if (open && contractId) {
+      // Устанавливаем дату по умолчанию на основе monthKey
+      const defaultDate = getDefaultDateFromMonthKey();
+      setForm(prev => ({ ...prev, date: defaultDate }));
+      
       axios.get(`${api}/con/contracts/${contractId}`)
         .then(res => {
           if (res.data?.data?.contract?.moveInDate) {
@@ -33,7 +43,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
         })
         .catch(err => console.error("Ошибка загрузки даты въезда:", err));
     }
-  }, [open, contractId]);
+  }, [open, contractId, monthKey]);
 
   const formatNumber = (value) => {
     if (!value) return "";
@@ -63,8 +73,7 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     setError("");
 
     const submitData = {
-      year: Number(form.year),
-      month: form.month,
+      date: form.date,
       contractId,
       contractAmount: Number(contractAmount),
       accrualAmount: Number(form.accrualAmount),
@@ -89,6 +98,14 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
     }
   };
 
+  // Получаем минимальную дату на основе даты въезда
+  // const getMinDate = () => {
+  //   if (moveInDate) {
+  //     return moveInDate.toISOString().split('T')[0];
+  //   }
+  //   return "2000-01-01";
+  // };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent>
@@ -98,30 +115,16 @@ export default function AccrualModal({ open, onClose, contractId, contractAmount
 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-sm font-medium">Год</label>
+            <label className="block text-sm font-medium">Дата</label>
             <input
-              type="number"
-              name="year"
-              value={form.year}
+              type="date"
+              name="date"
+              value={form.date}
               onChange={handleChange}
               className="w-full border rounded px-2 py-1"
-              min={moveInDate ? moveInDate.getFullYear() : 2000}
-              max="2100"
+              max="2100-12-31"
+              required
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium">Месяц</label>
-            <select
-              name="month"
-              value={form.month}
-              onChange={handleChange}
-              className="w-full border rounded px-2 py-1"
-            >
-              {months.map((m, idx) => (
-                <option key={m} value={m}>{m}</option>
-              ))}
-            </select>
           </div>
 
           <div>

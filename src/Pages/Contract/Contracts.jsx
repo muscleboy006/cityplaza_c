@@ -1,4 +1,3 @@
-// Оптимизированный файл: src/components/Contracts/Contracts.jsx
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -17,7 +16,6 @@ import ErrorModal from './Modal/ErrorModal';
 import DeleteContractModal from './Modal/DeleteContractModal';
 import './Contracts.css';
 
-// Константы вынесены наружу для избежания пересоздания
 const MONTH_NAMES = [
   'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь',
   'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
@@ -33,11 +31,9 @@ const SERVER_LIMIT = 60;
 const DISPLAY_LIMIT = 20;
 const CURRENT_YEAR = new Date().getFullYear();
 
-// Утилиты вынесены наружу
 const getMonthNumberFromName = (monthName) => MONTH_MAP[monthName] || null;
 const createMonthKey = (year, month) => `${year}-${month.toString().padStart(2, '0')}`;
 
-// Мемоизированный компонент для пустых строк
 const EmptyRow = React.memo(() => (
   <TableRow className="empty-row">
     {Array.from({ length: 10 }, (_, i) => (
@@ -51,7 +47,6 @@ const EmptyRow = React.memo(() => (
   </TableRow>
 ));
 
-// Мемоизированный компонент строки контракта
 const ContractRow = React.memo(({ 
   row, 
   selectedYear, 
@@ -60,7 +55,6 @@ const ContractRow = React.memo(({
   onDelete, 
   onRefresh 
 }) => {
-  // Фильтрация платежей по году происходит только один раз
   const filteredPayments = useMemo(() => {
     const filtered = {};
     const yearStr = selectedYear.toString();
@@ -91,18 +85,20 @@ const ContractRow = React.memo(({
   return (
     <TableRow className="cursor-pointer hover:bg-primary/10 transition">
       <TableCell>{row.floor}</TableCell>
+      <TableCell>{row.area}</TableCell>
+      <TableCell>{row.officeNumber}</TableCell>
+      <TableCell>{row.contractAmount?.toLocaleString()}</TableCell>
+      <TableCell>{row.contractAmountMinus12?.toLocaleString()}</TableCell>
+      <TableCell>{row.moveInDate}</TableCell>
+      <TableCell>{row.moveOutDate || "Нет"}</TableCell>
       <TableCell
         className="hover:underline cursor-pointer"
         onClick={handleCompanyClick}
       >
         {row.company}
       </TableCell>
-      <TableCell>{row.moveInDate}</TableCell>
-      <TableCell>{row.moveOutDate || "Нет"}</TableCell>
-      <TableCell>{row.contractAmount?.toLocaleString()}</TableCell>
-      <TableCell>{row.contractAmountMinus12?.toLocaleString()}</TableCell>
-      <TableCell>{row.area}</TableCell>
-      <TableCell>{row.officeNumber}</TableCell>
+      <TableCell>{row.totalAccruals}</TableCell>
+      <TableCell>{row.totalPayments}</TableCell>
       <TableCell
         className={row.debt > 0 ? "text-red-600 font-medium" : "text-green-600"}
       >
@@ -159,19 +155,19 @@ export default function Contracts() {
   const navigate = useNavigate();
   const abortControllerRef = useRef();
 
-  // Оптимизированная функция обработки данных контракта
   const processContractData = useCallback((item, index) => {
     const contract = item.contract || item;
     
-    // Обработка начислений по месяцам
     const monthlyPayments = {};
     
     if (item.accruals?.length > 0) {
       item.accruals.forEach((accrual) => {
-        const { year, month: monthName, accrualAmount } = accrual;
-        const monthNumber = getMonthNumberFromName(monthName);
-        
-        if (year && monthNumber && accrualAmount) {
+        if (accrual.date) {
+          const date = new Date(accrual.date);
+          const year = date.getFullYear();
+          const monthNumber = date.getMonth() + 1;
+          const monthName = MONTH_NAMES[monthNumber - 1];
+          
           const monthKey = createMonthKey(year, monthNumber);
           
           if (!monthlyPayments[monthKey]) {
@@ -180,8 +176,8 @@ export default function Contracts() {
           
           monthlyPayments[monthKey].push({
             id: accrual._id,
-            amount: accrualAmount,
-            date: accrual.createdAt,
+            amount: accrual.accrualAmount || accrual.amount || 0,
+            date: accrual.date,
             description: accrual.description || '',
             year,
             month: monthNumber,
@@ -196,16 +192,16 @@ export default function Contracts() {
       floor: contract.floor || '',
       area: contract.area ? `${contract.area} м²` : '',
       officeNumber: contract.officeNumber || '',
-      company: contract.company || '',
-      link: contract.link || '',
+      contractAmount: contract.contractAmount || 0,
+      contractAmountMinus12: contract.contractAmountMinus12 || 0,
       moveInDate: contract.moveInDate 
         ? new Date(contract.moveInDate).toLocaleDateString('ru-RU') 
         : '',
       moveOutDate: contract.moveOutDate 
         ? new Date(contract.moveOutDate).toLocaleDateString('ru-RU') 
         : '',
-      contractAmount: contract.contractAmount || 0,
-      contractAmountMinus12: contract.contractAmountMinus12 || 0,
+      company: contract.company || '',
+      link: contract.link || '',
       totalAccruals: item.totalAccruals || 0,
       totalPayments: item.totalPayments || 0,
       debt: item.debt || 0,
@@ -213,9 +209,7 @@ export default function Contracts() {
     };
   }, []);
 
-  // Оптимизированная загрузка данных с кешированием
   const loadContracts = useCallback(async (year, pageNum = 1) => {
-    // Отменяем предыдущий запрос если он есть
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -233,32 +227,28 @@ export default function Contracts() {
           },
           signal: abortControllerRef.current.signal
         }),
-        // Загружаем фильтры только если их еще нет
         availableYears.length === 0 ? axios.get(`${api}/con/contracts`, {
           params: { limit: 1, page: 1, year: CURRENT_YEAR },
           signal: abortControllerRef.current.signal
         }) : Promise.resolve(null)
       ]);
 
-      // Обработка фильтров
       if (filtersRes?.data?.success && filtersRes.data.filters?.availableYears) {
         const years = filtersRes.data.filters.availableYears;
         setAvailableYears(years);
         
-        // Если текущий год недоступен, выбираем последний доступный
         if (!years.includes(year) && years.length > 0) {
           const maxYear = Math.max(...years);
           setSelectedYear(maxYear);
-          return; // Перезагрузится через useEffect
+          return;
         }
       }
 
-      // Обработка контрактов
       if (contractsRes.data.success && Array.isArray(contractsRes.data.data)) {
         const processedData = contractsRes.data.data.map(processContractData);
         setAllContracts(processedData);
         setTotalPages(Math.ceil(processedData.length / DISPLAY_LIMIT));
-        setPage(1); // Сбрасываем на первую страницу при новой загрузке
+        setPage(1);
       }
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -269,13 +259,11 @@ export default function Contracts() {
     }
   }, [availableYears.length, processContractData]);
 
-  // Мемоизированное разбиение на страницы
   const paginatedContracts = useMemo(() => {
     const startIndex = (page - 1) * DISPLAY_LIMIT;
     const endIndex = startIndex + DISPLAY_LIMIT;
     const slicedData = allContracts.slice(startIndex, endIndex);
 
-    // Дополняем пустыми строками до 20
     const emptyRowsCount = DISPLAY_LIMIT - slicedData.length;
     const emptyRows = Array.from({ length: emptyRowsCount }, (_, i) => ({
       id: `empty-${i}`,
@@ -285,17 +273,14 @@ export default function Contracts() {
     return [...slicedData, ...emptyRows];
   }, [allContracts, page]);
 
-  // Обновляем displayContracts только при изменении paginatedContracts
   useEffect(() => {
     setDisplayContracts(paginatedContracts);
   }, [paginatedContracts]);
 
-  // Загрузка данных при изменении года
   useEffect(() => {
     loadContracts(selectedYear);
   }, [selectedYear, loadContracts]);
 
-  // Инициализация компонента
   useEffect(() => {
     loadContracts(CURRENT_YEAR);
     
@@ -306,7 +291,6 @@ export default function Contracts() {
     };
   }, []);
 
-  // Оптимизированные обработчики событий
   const handleNavigate = useCallback((path) => {
     navigate(path);
   }, [navigate]);
@@ -350,12 +334,10 @@ export default function Contracts() {
     navigate('/addcon');
   }, [navigate]);
 
-  // Мемоизированные значения для производительности
   const canGoNext = useMemo(() => page < totalPages, [page, totalPages]);
   const canGoPrev = useMemo(() => page > 1, [page]);
   const pageInfo = useMemo(() => `${page} из ${totalPages}`, [page, totalPages]);
 
-  // Показываем загрузку только при первой загрузке
   if (loading && allContracts.length === 0) {
     return (
       <div className="flex flex-col h-screen main-container">
@@ -379,7 +361,6 @@ export default function Contracts() {
           max-width: 100vw !important;
         }
 
-        /* Оптимизированные стили */
         .table-container {
           contain: layout style paint;
         }
@@ -427,7 +408,6 @@ export default function Contracts() {
           pointer-events: none;
         }
 
-        /* Улучшения производительности */
         .table-row {
           transform: translateZ(0);
           will-change: transform;
@@ -474,13 +454,15 @@ export default function Contracts() {
               <TableHeader className="sticky-header">
                 <TableRow>
                   <TableHead className="w-[60px]">Этаж</TableHead>
-                  <TableHead className="w-[100px]">Компания</TableHead>
-                  <TableHead className="w-[100px]">Дата заезда</TableHead>
-                  <TableHead className="w-[100px]">Дата выезда</TableHead>
-                  <TableHead className="w-[100px]">Сумма по договору</TableHead>
-                  <TableHead className="w-[100px]">Сумма 12%</TableHead>
                   <TableHead className="w-[80px]">Квадратура</TableHead>
                   <TableHead className="w-[80px]">Номер офиса</TableHead>
+                  <TableHead className="w-[100px]">Сумма по договору</TableHead>
+                  <TableHead className="w-[100px]">Сумма 12%</TableHead>
+                  <TableHead className="w-[100px]">Дата заезда</TableHead>
+                  <TableHead className="w-[100px]">Дата выезда</TableHead>
+                  <TableHead className="w-[100px]">Компания</TableHead>
+                  <TableHead className="w-[100px]">Начисления</TableHead>
+                  <TableHead className="w-[100px]">Общая сумма</TableHead>
                   <TableHead className="w-[100px]">Долг</TableHead>
                   <TableHead className="w-[100px]"></TableHead>
                   {MONTH_NAMES.map((month, index) => (
@@ -513,7 +495,6 @@ export default function Contracts() {
           </div>
         </div>
         
-        {/* Фиксированная пагинация */}
         <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4">
           <div className="flex items-center justify-between px-2">
             <div className="text-sm text-muted-foreground">
@@ -550,7 +531,6 @@ export default function Contracts() {
         </div>
       </main>
 
-      {/* Модальные окна */}
       <ArchiveModal
         open={archiveModalOpen}
         onOpenChange={setArchiveModalOpen}

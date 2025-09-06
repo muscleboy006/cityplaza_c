@@ -3,12 +3,37 @@ import { X, Search, Upload, DollarSign } from "lucide-react";
 import axios from "axios";
 import api from "@/Utils/api";
 
+// Utility function to format numbers with thousand separators and no trailing zeros
+const formatNumber = (value) => {
+  if (!value && value !== 0) return "";
+  const num = parseFloat(value);
+  if (isNaN(num)) return "";
+  // Format with up to 2 decimal places
+  let formatted = num.toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  // Remove trailing zeros and decimal point if unnecessary
+  formatted = formatted.replace(/,0+$/, "").replace(/,0+/, ",");
+  return formatted;
+};
+
+// Utility function to parse formatted numbers back to raw float
+const parseNumber = (value) => {
+  if (!value) return "";
+  // Remove thousand separators (spaces in ru-RU locale) and convert to number
+  const cleanedValue = value.replace(/\s/g, "").replace(",", ".");
+  const num = parseFloat(cleanedValue);
+  return isNaN(num) ? "" : num;
+};
+
 const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
   const [contracts, setContracts] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContract, setSelectedContract] = useState(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(""); // Stores the formatted string for display
+  const [rawAmount, setRawAmount] = useState(""); // Stores the raw number
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -33,7 +58,7 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
       console.log("Загружаем список договоров...");
       const res = await axios.get(`${api}/suv/cons`);
       console.log("Договоры загружены:", res.data);
-      
+
       const contractsData = res.data.data || res.data || [];
       setContracts(contractsData);
       setFilteredContracts(contractsData);
@@ -96,31 +121,43 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
   };
 
   const handleInputChange = (e) => {
-    setSearchTerm(e.target.value);
-    setSelectedContract(null);
-    setShowDropdown(true);
+    const { name, value } = e.target;
+    if (name === "searchTerm") {
+      setSearchTerm(value);
+      setSelectedContract(null);
+      setShowDropdown(true);
+    } else if (name === "amount") {
+      const rawValue = parseNumber(value); // Parse the input to a raw number
+      if (rawValue !== "") {
+        setRawAmount(rawValue); // Store raw number
+        setAmount(formatNumber(rawValue)); // Store formatted string for display
+      } else {
+        setRawAmount("");
+        setAmount("");
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!amount) {
+
+    if (!rawAmount) {
       setError("Заполните сумму!");
       return;
     }
 
     const formData = new FormData();
-    
+
     if (selectedContract) {
       formData.append("contractId", selectedContract._id);
     }
-    
-    formData.append("amount", amount);
-    
+
+    formData.append("amount", rawAmount); // Use raw number for submission
+
     if (!selectedContract && searchTerm.trim()) {
       formData.append("name", searchTerm.trim());
     }
-    
+
     images.forEach((img, index) => {
       console.log(`Добавляем новое изображение ${index}:`, img.name);
       formData.append("images", img);
@@ -129,29 +166,33 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
     try {
       setLoading(true);
       setError("");
-      
+
       console.log("Отправляем данные:", {
         suvId,
         contractId: selectedContract?._id,
-        amount,
+        amount: rawAmount,
         name: !selectedContract ? searchTerm.trim() : undefined,
-        newImagesCount: images.length
+        newImagesCount: images.length,
       });
 
-      const response = await axios.put(`${api}/suv/${suvId}/add-payment`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      
+      const response = await axios.put(
+        `${api}/suv/${suvId}/add-payment`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
       console.log("Ответ сервера при добавлении:", response.data);
       console.log("Платеж успешно добавлен");
-      
+
       if (onSuccess) onSuccess();
       onClose();
-      
     } catch (error) {
       console.error("Ошибка при добавлении платежа:", error);
-      
-      const errorMessage = error.response?.data?.message || error.message || "Неизвестная ошибка";
+
+      const errorMessage =
+        error.response?.data?.message || error.message || "Неизвестная ошибка";
       setError(`Ошибка при добавлении платежа: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -162,6 +203,7 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
     setSearchTerm("");
     setSelectedContract(null);
     setAmount("");
+    setRawAmount("");
     setImages([]);
     setShowDropdown(false);
     setLoading(false);
@@ -197,15 +239,18 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
               <div className="relative">
                 <input
                   type="text"
+                  name="searchTerm"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   placeholder="Введите название договора"
                   value={searchTerm}
                   onChange={handleInputChange}
                   onFocus={handleInputFocus}
                 />
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                />
               </div>
-              
+
               {showDropdown && filteredContracts.length > 0 && (
                 <div className="absolute bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg mt-1 w-full max-h-40 overflow-y-auto shadow-lg z-10">
                   {filteredContracts.map((contract) => (
@@ -228,14 +273,17 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
               </label>
               <div className="relative">
                 <input
-                  type="number"
+                  type="text"
+                  name="amount"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder="Введите сумму"
                   required
                 />
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <DollarSign
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4"
+                />
               </div>
             </div>
 
@@ -262,7 +310,7 @@ const AddPaymentModal = ({ isOpen, onClose, suvId, onSuccess }) => {
                   />
                 </label>
               </div>
-              
+
               {/* Превью изображений */}
               {images.length > 0 && (
                 <div className="mt-4">

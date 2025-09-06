@@ -7,7 +7,7 @@ import EditPaymentModal from "./editPayment";
 import DocumentModal from "./addGas";
 import EditDocumentModal from "./editGas";
 import DelConfirmModal from "./delGas";
-import ImageViewerModal from "./imgViewer"; // Новый импорт
+import ImageViewerModal from "./imgViewer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CreditCard, Edit, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,7 +96,7 @@ const ClientTable = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${api}/gas?page=${page}&limit=${rowsPerPage}`);
-      setData(res.data.data); // массив текущей страницы
+      setData(res.data.data);
       console.log(res.data.data);
       
       setTotalPages(res.data.totalPages || Math.ceil(res.data.total / rowsPerPage));
@@ -117,6 +117,11 @@ const ClientTable = () => {
 
   const handleNextPage = () => {
     if (currentPage < totalPages) setCurrentPage((prev) => prev + 1);
+  };
+
+  // Функция для форматирования чисел
+  const formatNumber = (number) => {
+    return Math.round(number).toLocaleString('ru-RU');
   };
 
   if (loading) return <p className="text-center">Загрузка...</p>;
@@ -179,13 +184,13 @@ const ClientTable = () => {
                   <div className="font-medium">{item.month}</div>
                 </td>
                 <td className="p-4 align-middle">
-                  <div className="font-semibold text-lg">{item.totalAmount} UZS</div>
+                  <div className="font-semibold text-lg">{formatNumber(item.totalAmount)} UZS</div>
                 </td>
                 <td className="p-4 align-middle">
-                  <div className="font-semibold text-lg">{item.totalGas} UZS</div>
+                  <div className="font-semibold text-lg">{formatNumber(item.totalGas)} UZS</div>
                 </td>
                 <td className="p-4 align-middle">
-                  <Badge variant={item.inPercent >= 80 ? "default" : item.inPercent >= 60 ? "secondary" : "destructive"}>
+                  <Badge variant={"default"}>
                     {item.inPercent}%
                   </Badge>
                 </td>
@@ -250,7 +255,7 @@ const ClientTable = () => {
                                   </td>
                                   <td className="py-2 px-2 w-40">
                                     <Badge variant="outline" className="font-mono">
-                                      {pay.amount} UZS
+                                      {formatNumber(pay.amount)} UZS
                                     </Badge>
                                   </td>
                                   <td className="py-2 px-2">

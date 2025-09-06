@@ -3,12 +3,37 @@ import { X, Upload, Trash2 } from "lucide-react";
 import axios from "axios";
 import api from "@/Utils/api";
 
+// Utility function to format numbers with thousand separators and no trailing zeros
+const formatNumber = (value) => {
+  if (!value && value !== 0) return "";
+  const num = parseFloat(value);
+  if (isNaN(num)) return "";
+  // Format with up to 2 decimal places
+  let formatted = num.toLocaleString("ru-RU", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+  // Remove trailing zeros and decimal point if unnecessary
+  formatted = formatted.replace(/,0+$/, "").replace(/,0+/, ",");
+  return formatted;
+};
+
+// Utility function to parse formatted numbers back to raw float
+const parseNumber = (value) => {
+  if (!value) return "";
+  // Remove thousand separators (spaces in ru-RU locale) and convert to number
+  const cleanedValue = value.replace(/\s/g, "").replace(",", ".");
+  const num = parseFloat(cleanedValue);
+  return isNaN(num) ? "" : num;
+};
+
 const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess }) => {
   const [contracts, setContracts] = useState([]);
   const [filteredContracts, setFilteredContracts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedContract, setSelectedContract] = useState(null);
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(""); // Stores the formatted string for display
+  const [rawAmount, setRawAmount] = useState(""); // Stores the raw number
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
   const [originalImages, setOriginalImages] = useState([]);
@@ -16,7 +41,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [error, setError] = useState("");
-  
+
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -35,14 +60,14 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
 
   const processImageUrl = (imgPath) => {
     if (!imgPath) return null;
-    
-    if (imgPath.startsWith('http')) {
+
+    if (imgPath.startsWith("http")) {
       return imgPath;
     }
-    
-    const cleanPath = imgPath.startsWith('/') ? imgPath : `/${imgPath}`;
+
+    const cleanPath = imgPath.startsWith("/") ? imgPath : `/${imgPath}`;
     const fullUrl = `${api}${cleanPath}`.replace(/([^:]\/)\/+/g, "$1");
-    
+
     console.log("Обработка изображения:", { original: imgPath, processed: fullUrl });
     return fullUrl;
   };
@@ -56,54 +81,61 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
     try {
       setLoadingPayment(true);
       setError("");
-      
+
       console.log("Загружаем платеж:", electrcyId, paymentId);
-      
+
       const res = await axios.get(`${api}/elc/${electrcyId}/payment/${paymentId}`);
       console.log("Ответ сервера:", res.data);
-      
+
       const payment = res.data.data || res.data;
       console.log("Данные платежа:", payment);
-      
+
       if (!payment) {
         setError("Платеж не найден");
         return;
       }
 
-      setAmount(payment.amount?.toString() || "");
-      
+      setRawAmount(payment.amount || ""); // Store raw number
+      setAmount(formatNumber(payment.amount) || ""); // Format for display
+
       const processedImages = (payment.images || [])
         .map(processImageUrl)
         .filter(Boolean);
-      
+
       console.log("Обработанные изображения:", processedImages);
       setExistingImages(processedImages);
       setOriginalImages([...processedImages]);
-      
+
       if (payment.contractId) {
         console.log("Ищем договор с ID:", payment.contractId);
         const contractsData = contracts.length > 0 ? contracts : await fetchContracts();
-        const contract = contractsData.find(c => c._id === payment.contractId);
-        
+        const contract = contractsData.find((c) => c._id === payment.contractId);
+
         if (contract) {
           console.log("Найден договор:", contract);
           setSelectedContract(contract);
-          setSearchTerm(contract.company || contract.name || `Договор #${contract._id}`);
+          setSearchTerm(
+            contract.company || contract.name || `Договор #${contract._id}`
+          );
         } else {
           console.log("Договор не найден в списке, contractId:", payment.contractId);
         }
       } else if (payment.contract) {
         console.log("Используем встроенный договор:", payment.contract);
         setSelectedContract(payment.contract);
-        setSearchTerm(payment.contract.company || payment.contract.name || `Договор #${payment.contract._id}`);
+        setSearchTerm(
+          payment.contract.company ||
+            payment.contract.name ||
+            `Договор #${payment.contract._id}`
+        );
       } else if (payment.name) {
         setSearchTerm(payment.name);
       }
-      
     } catch (error) {
       console.error("Ошибка загрузки данных платежа:", error);
-      
-      const errorMessage = error.response?.data?.message || error.message || "Неизвестная ошибка";
+
+      const errorMessage =
+        error.response?.data?.message || error.message || "Неизвестная ошибка";
       setError(`Ошибка загрузки данных платежа: ${errorMessage}`);
     } finally {
       setLoadingPayment(false);
@@ -115,7 +147,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
       console.log("Загружаем список договоров...");
       const res = await axios.get(`${api}/elc/cons`);
       console.log("Договоры загружены:", res.data);
-      
+
       const contractsData = res.data.data || res.data || [];
       setContracts(contractsData);
       setFilteredContracts(contractsData);
@@ -183,86 +215,107 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
   };
 
   const handleInputChange = (e) => {
-    setSearchTerm(e.target.value);
-    setSelectedContract(null);
-    setShowDropdown(true);
+    const { name, value } = e.target;
+    if (name === "searchTerm") {
+      setSearchTerm(value);
+      setSelectedContract(null);
+      setShowDropdown(true);
+    } else if (name === "amount") {
+      const rawValue = parseNumber(value); // Parse the input to a raw number
+      if (rawValue !== "") {
+        setRawAmount(rawValue); // Store raw number
+        setAmount(formatNumber(rawValue)); // Store formatted string for display
+      } else {
+        setRawAmount("");
+        setAmount("");
+      }
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!amount) {
+
+    if (!rawAmount) {
       setError("Заполните сумму!");
       return;
     }
 
     const formData = new FormData();
-    
+
     if (selectedContract) {
       formData.append("contractId", selectedContract._id);
     }
-    
-    formData.append("amount", amount);
-    
+
+    formData.append("amount", rawAmount); // Use raw number for submission
+
     if (!selectedContract && searchTerm.trim()) {
       formData.append("name", searchTerm.trim());
     }
-    
+
     images.forEach((img, index) => {
       console.log(`Добавляем новое изображение ${index}:`, img.name);
       formData.append("images", img);
     });
-    
-    const imagesToKeep = existingImages.map(imgUrl => {
+
+    const imagesToKeep = existingImages.map((imgUrl) => {
       if (imgUrl.startsWith(api)) {
-        return imgUrl.replace(api, '');
+        return imgUrl.replace(api, "");
       }
-      return imgUrl.startsWith('/') ? imgUrl : `/${imgUrl}`;
+      return imgUrl.startsWith("/") ? imgUrl : `/${imgUrl}`;
     });
-    
+
     console.log("Изображения для сохранения:", imagesToKeep);
     formData.append("existingImages", JSON.stringify(imagesToKeep));
 
-    const removedImages = originalImages.filter(img => !existingImages.includes(img));
+    const removedImages = originalImages.filter((img) => !existingImages.includes(img));
     if (removedImages.length > 0) {
       console.log("Удаленные изображения:", removedImages);
-      formData.append("removedImages", JSON.stringify(removedImages.map(img => {
-        if (img.startsWith(api)) {
-          return img.replace(api, '');
-        }
-        return img.startsWith('/') ? img : `/${img}`;
-      })));
+      formData.append(
+        "removedImages",
+        JSON.stringify(
+          removedImages.map((img) => {
+            if (img.startsWith(api)) {
+              return img.replace(api, "");
+            }
+            return img.startsWith("/") ? img : `/${img}`;
+          })
+        )
+      );
     }
 
     try {
       setLoading(true);
       setError("");
-      
+
       console.log("Отправляем данные:", {
         electrcyId,
         paymentId,
         contractId: selectedContract?._id,
-        amount,
+        amount: rawAmount,
         name: !selectedContract ? searchTerm.trim() : undefined,
         newImagesCount: images.length,
         existingImagesCount: existingImages.length,
-        removedImagesCount: removedImages.length
+        removedImagesCount: removedImages.length,
       });
 
-      const response = await axios.put(`${api}/elc/${electrcyId}/payment/${paymentId}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      
+      const response = await axios.put(
+        `${api}/elc/${electrcyId}/payment/${paymentId}`,
+        formData,
+        {
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
+
       console.log("Ответ сервера при обновлении:", response.data);
       console.log("Платеж успешно обновлен");
-      
+
       if (onSuccess) onSuccess();
       onClose();
-      
     } catch (error) {
       console.error("Ошибка при обновлении платежа:", error);
-      
-      const errorMessage = error.response?.data?.message || error.message || "Неизвестная ошибка";
+
+      const errorMessage =
+        error.response?.data?.message || error.message || "Неизвестная ошибка";
       setError(`Ошибка при обновлении платежа: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -273,6 +326,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
     setSearchTerm("");
     setSelectedContract(null);
     setAmount("");
+    setRawAmount("");
     setImages([]);
     setExistingImages([]);
     setOriginalImages([]);
@@ -315,6 +369,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
                 </label>
                 <input
                   type="text"
+                  name="searchTerm"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   placeholder="Введите название договора"
                   value={searchTerm}
@@ -342,10 +397,11 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
                   Сумма *
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  name="amount"
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={handleInputChange}
                   placeholder="Введите сумму"
                   required
                 />
@@ -356,7 +412,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
                 <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                   Изображения
                 </label>
-                
+
                 {/* Existing images */}
                 {existingImages.length > 0 && (
                   <div>
@@ -370,7 +426,8 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
                             className="w-full h-16 object-cover rounded-md border border-border"
                             onError={(e) => {
                               console.error("Ошибка загрузки изображения:", imgUrl);
-                              e.target.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f0f0f0'/%3E%3Ctext x='32' y='32' text-anchor='middle' dy='0.3em' font-size='10' fill='%23999'%3EОшибка%3C/text%3E%3C/svg%3E";
+                              e.target.src =
+                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23f0f0f0'/%3E%3Ctext x='32' y='32' text-anchor='middle' dy='0.3em' font-size='10' fill='%23999'%3EОшибка%3C/text%3E%3C/svg%3E";
                             }}
                           />
                           <button
@@ -401,7 +458,7 @@ const EditPaymentModal = ({ isOpen, onClose, electrcyId, paymentId, onSuccess })
                     />
                   </label>
                 </div>
-                
+
                 {/* New images */}
                 {images.length > 0 && (
                   <div>

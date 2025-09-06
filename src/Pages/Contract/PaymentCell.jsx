@@ -1,4 +1,3 @@
-// Файл: src/components/Contracts/PaymentCell.jsx
 import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -7,50 +6,41 @@ import DeleteAccrualModal from "../Accrual/accrualDelModal";
 import AccrualModal from "../Accrual/accrualModal";
 
 const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
-  // Добавляем состояния для модалов
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedAccrualId, setSelectedAccrualId] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [isAddOpen, setIsAddOpen] = useState(false); // Состояние для модала добавления
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
-  // Функция открытия модалки редактирования
   const openEditModal = (accrualId) => {
     setSelectedAccrualId(accrualId);
     setIsEditOpen(true);
   };
 
-  // Функция открытия модалки удаления
   const openDeleteModal = (id) => {
     setDeleteId(id);
     setDeleteOpen(true);
   };
 
-  // Функция открытия модалки добавления
   const openAddModal = () => {
     setIsAddOpen(true);
   };
 
-  // Функция обновления данных
   const updateData = () => {
     if (onRefresh) {
       onRefresh();
     }
   };
   
-  // Подсчитываем общую сумму для ячейки
   const totalAmount = payments?.length > 0 ? payments.reduce((sum, payment) => sum + payment.amount, 0) : 0;
 
-  // Извлекаем год и месяц из monthName для модала добавления
   const [monthDisplayName, yearStr] = monthName.split(' ');
   const year = parseInt(yearStr);
   
-  // Пустые строки не должны быть кликабельными
   if (!rowData.id || rowData.id.startsWith('empty')) {
     return <div className="w-full h-8 border border-dashed bg-gray-100"></div>;
   }
 
-  // Все ячейки теперь кликабельны
   return (
     <>
       <Dialog>
@@ -58,7 +48,7 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
           <div 
             className={`w-full h-8 border rounded flex items-center justify-center text-xs font-medium cursor-pointer relative ${
               !payments || payments.length === 0
-                ? 'bg-gray-50 hover:bg-gray-100 border-dashed' // Пустые ячейки
+                ? 'bg-gray-50 hover:bg-gray-100 border-dashed'
                 : payments.length === 1 
                 ? 'bg-green-100 hover:bg-green-200' 
                 : 'bg-blue-100 hover:bg-blue-200'
@@ -74,12 +64,11 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
             {!payments || payments.length === 0 ? (
               <span className="text-white"></span>
             ) : payments.length === 1 ? (
-              // Показываем полную сумму без сокращения
               <span>{totalAmount.toLocaleString()}</span>
             ) : (
               <div className="text-center">
-                <div>{payments.length}</div>
-                <div className="text-[8px]">{totalAmount.toLocaleString()}</div>
+                <div className="text-[14px]">{totalAmount.toLocaleString()}</div>
+                {/* <div className="text-[10px]">{payments.length}</div> */}
               </div>
             )}
           </div>
@@ -87,7 +76,6 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
         <DialogContent className="max-w-md">
           <DialogHeader className="flex flex-row items-center justify-between">
             <DialogTitle>Платежи за {monthName}</DialogTitle>
-            {/* Кнопка добавления в верхний правый угол */}
             <Button
               onClick={openAddModal}
               size="sm"
@@ -144,7 +132,6 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
         </DialogContent>
       </Dialog>
 
-      {/* Модал добавления начисления */}
       {isAddOpen && (
         <AccrualModal
           open={isAddOpen}
@@ -157,10 +144,10 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
           }}
           initialYear={year}
           initialMonth={monthDisplayName}
+          monthKey={monthKey}
         />
       )}
 
-      {/* Модал редактирования */}
       {isEditOpen && rowData && (
         <EditAccrualModal
           open={isEditOpen}
@@ -174,7 +161,6 @@ const PaymentCell = ({ payments, monthName, monthKey, rowData, onRefresh }) => {
         />
       )}
 
-      {/* Модал удаления */}
       {deleteOpen && (
         <DeleteAccrualModal
           open={deleteOpen}
