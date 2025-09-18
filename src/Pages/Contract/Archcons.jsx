@@ -395,7 +395,7 @@ export default function Contracts() {
   };
 
   return (
-    <div className="flex flex-col h-screen main-container">
+    <div className="flex flex-col h-80vh main-container">
       <style jsx>{`
         /* Global styles to eliminate double scrollbar */
         html, body {

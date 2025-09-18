@@ -10,7 +10,7 @@ import DelConfirmModal from "./delTax";
 import ImageViewerModal from "./imgViewer";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, CreditCard, Edit, Plus, Trash2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 const ClientTable = () => {
@@ -122,202 +122,350 @@ const ClientTable = () => {
     return Math.round(number).toLocaleString('ru-RU');
   };
 
-  if (loading) return <p className="text-center">Загрузка...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  if (loading) return <p className="text-center p-4">Загрузка...</p>;
+  if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
 
   return (
-    <div className="p-4">
-      <div className="space-y-6">
+    <div className="p-2 sm:p-4 min-h-screen">
+      <div className="space-y-4 sm:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             Таблица начислений по налогу
           </h1>
-          <Button onClick={() => setAddElecOpen(true)} className="gap-2">
+          <Button 
+            onClick={() => setAddElecOpen(true)} 
+            className="gap-2 w-full sm:w-auto"
+            size="lg"
+          >
             <Plus className="h-4 w-4" />
             Добавить документ
           </Button>
         </div>
 
-        {/* Table Card */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground w-20">
-                      Год
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground w-20">
-                      Месяц
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
-                      Общая сумма
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
-                      Общий по налогу
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
-                      Долг
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground">
-                      Действия
-                    </th>
-                    <th className="h-12 px-4 text-left font-medium text-muted-foreground">
-                      Платежи
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.map((item) => (
-                    <tr
-                      key={item._id}
-                      className="border-b transition-colors hover:bg-muted/50"
-                    >
-                      <td className="p-4">{item.year}</td>
-                      <td className="p-4">{item.month}</td>
-                      <td className="p-4 font-semibold text-lg">{formatNumber(item.totalAmount)} UZS</td>
-                      <td className="p-4 font-semibold text-lg">{formatNumber(item.totalTax)} UZS</td>
-                      <td className="p-4 font-semibold text-lg">{formatNumber(item.debt)} UZS</td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-1">
-                          <Button
-                            onClick={() => handelAddClick(item._id)}
-                            size="sm"
-                            variant="outline"
-                            className="h-8 px-3 gap-1"
-                          >
-                            <CreditCard className="h-3 w-3" />
-                            Платеж
-                          </Button>
-                          <Button
-                            onClick={() => handleElecClick(item._id)}
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            onClick={() => handleElecDeleteClick(item._id)}
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        {item.paymentAmount.length > 0 ? (
-                          <Card className="w-full">
-                            <CardContent className="p-3">
-                              <div className="overflow-x-auto">
-                                <table className="w-full text-sm">
-                                  <thead>
-                                    <tr className="border-b">
-                                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                                        Дата
-                                      </th>
-                                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                                        Сумма
-                                      </th>
-                                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                                        Изображения
-                                      </th>
-                                      <th className="text-left py-2 px-2 font-medium text-muted-foreground">
-                                        Действия
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {item.paymentAmount.map((pay) => (
-                                      <tr
-                                        key={pay._id}
-                                        className="border-b last:border-0 hover:bg-muted/30 transition-colors"
-                                      >
-                                        <td className="py-2 px-2">
-                                          {pay.date
-                                            ? new Date(pay.date).toLocaleDateString("ru-RU", {
-                                                day: "2-digit",
-                                                month: "2-digit",
-                                                year: "numeric",
-                                              })
-                                            : "—"}
-                                        </td>
-                                        <td className="py-2 px-2 w-40">
-                                          <Badge variant="outline" className="font-mono">
-                                            {formatNumber(pay.amount)} UZS
-                                          </Badge>
-                                        </td>
-                                        <td className="py-2 px-2">
-                                          {pay.images.length > 0 ? (
-                                            <div className="flex flex-wrap gap-1">
-                                              {pay.images.map((img, idx) => (
-                                                <div key={idx} className="relative group">
-                                                  <img
-                                                    src={`${api}${img}`}
-                                                    alt="payment"
-                                                    className="w-10 h-10 object-cover rounded-md border-2 border-border hover:border-primary transition-colors cursor-pointer hover:shadow-lg"
-                                                    onClick={() => handleImageClick(pay.images, idx)}
-                                                  />
-                                                </div>
-                                              ))}
-                                            </div>
-                                          ) : (
-                                            <span className="text-muted-foreground text-xs">
-                                              Нет изображений
-                                            </span>
-                                          )}
-                                        </td>
-                                        <td className="py-2 px-2 w-40">
-                                          <div className="flex items-center gap-1">
-                                            <Button
-                                              onClick={() => handleEditClick(item._id, pay._id)}
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-6 w-6 p-0"
-                                            >
-                                              <Edit className="h-3 w-3" />
-                                            </Button>
-                                            <Button
-                                              onClick={() => handleDeleteClick(item._id, pay._id)}
-                                              size="sm"
-                                              variant="ghost"
-                                              className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                            >
-                                              <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ) : (
-                          <div className="text-muted-foreground text-sm italic">
-                            Нет платежей
-                          </div>
-                        )}
-                      </td>
+        {/* Desktop Table - Hidden on mobile */}
+        <div className="hidden lg:block">
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground w-20">
+                        Год
+                      </th>
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
+                        Общая сумма
+                      </th>
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
+                        Общий по налогу
+                      </th>
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground w-30">
+                        Долг
+                      </th>
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground">
+                        Действия
+                      </th>
+                      <th className="h-12 px-4 text-left font-medium text-muted-foreground">
+                        Платежи
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                  </thead>
+                  <tbody>
+                    {data.map((item) => (
+                      <tr
+                        key={item._id}
+                        className="border-b transition-colors hover:bg-muted/50"
+                      >
+                        <td className="p-4">{item.year}</td>
+                        <td className="p-4 font-semibold text-lg">{formatNumber(item.totalAmount)} UZS</td>
+                        <td className="p-4 font-semibold text-lg">{formatNumber(item.totalTax)} UZS</td>
+                        <td className="p-4 font-semibold text-lg">{formatNumber(item.debt)} UZS</td>
+                        <td className="p-4">
+                          <div className="flex items-center gap-1">
+                            <Button
+                              onClick={() => handelAddClick(item._id)}
+                              size="sm"
+                              variant="outline"
+                              className="h-8 px-3 gap-1"
+                            >
+                              <CreditCard className="h-3 w-3" />
+                              Платеж
+                            </Button>
+                            <Button
+                              onClick={() => handleElecClick(item._id)}
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              onClick={() => handleElecDeleteClick(item._id)}
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          {item.paymentAmount.length > 0 ? (
+                            <Card className="w-full">
+                              <CardContent className="p-3">
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm">
+                                    <thead>
+                                      <tr className="border-b">
+                                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                                          Дата
+                                        </th>
+                                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                                          Сумма
+                                        </th>
+                                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                                          Изображения
+                                        </th>
+                                        <th className="text-left py-2 px-2 font-medium text-muted-foreground">
+                                          Действия
+                                        </th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {item.paymentAmount.map((pay) => (
+                                        <tr
+                                          key={pay._id}
+                                          className="border-b last:border-0 hover:bg-muted/30 transition-colors"
+                                        >
+                                          <td className="py-2 px-2">
+                                            {pay.date
+                                              ? new Date(pay.date).toLocaleDateString("ru-RU", {
+                                                  day: "2-digit",
+                                                  month: "2-digit",
+                                                  year: "numeric",
+                                                })
+                                              : "—"}
+                                          </td>
+                                          <td className="py-2 px-2 w-40">
+                                            <Badge variant="outline" className="font-mono">
+                                              {formatNumber(pay.amount)} UZS
+                                            </Badge>
+                                          </td>
+                                          <td className="py-2 px-2">
+                                            {pay.images.length > 0 ? (
+                                              <div className="flex flex-wrap gap-1">
+                                                {pay.images.map((img, idx) => (
+                                                  <div key={idx} className="relative group">
+                                                    <img
+                                                      src={`${api}${img}`}
+                                                      alt="payment"
+                                                      className="w-10 h-10 object-cover rounded-md border-2 border-border hover:border-primary transition-colors cursor-pointer hover:shadow-lg"
+                                                      onClick={() => handleImageClick(pay.images, idx)}
+                                                    />
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <span className="text-muted-foreground text-xs">
+                                                Нет изображений
+                                              </span>
+                                            )}
+                                          </td>
+                                          <td className="py-2 px-2 w-40">
+                                            <div className="flex items-center gap-1">
+                                              <Button
+                                                onClick={() => handleEditClick(item._id, pay._id)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 w-6 p-0"
+                                              >
+                                                <Edit className="h-3 w-3" />
+                                              </Button>
+                                              <Button
+                                                onClick={() => handleDeleteClick(item._id, pay._id)}
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-6 w-6 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                              >
+                                                <Trash2 className="h-3 w-3" />
+                                              </Button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ) : (
+                            <div className="text-muted-foreground text-sm italic">
+                              Нет платежей
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Mobile Cards - Shown only on mobile and tablet */}
+        <div className="space-y-4 lg:hidden">
+          {data.map((item) => (
+            <Card key={item._id} className="shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">
+                    {item.month} {item.year}
+                  </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      onClick={() => handelAddClick(item._id)}
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-2 gap-1"
+                    >
+                      <CreditCard className="h-3 w-3" />
+                      <span className="hidden sm:inline">Платеж</span>
+                    </Button>
+                    <Button
+                      onClick={() => handleElecClick(item._id)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                    >
+                      <Edit className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      onClick={() => handleElecDeleteClick(item._id)}
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Суммы */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                      Общая сумма
+                    </div>
+                    <div className="font-semibold text-base">
+                      {formatNumber(item.totalAmount)} UZS
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                      Общий по налогу
+                    </div>
+                    <div className="font-semibold text-base">
+                      {formatNumber(item.totalTax)} UZS
+                    </div>
+                  </div>
+                  <div className="bg-muted/50 p-3 rounded-lg">
+                    <div className="text-muted-foreground text-xs uppercase tracking-wide mb-1">
+                      Долг
+                    </div>
+                    <div className="font-semibold text-base text-red-600">
+                      {formatNumber(item.debt)} UZS
+                    </div>
+                  </div>
+                </div>
+
+                {/* Платежи */}
+                <div>
+                  <h4 className="font-medium text-sm text-muted-foreground mb-2 uppercase tracking-wide">
+                    Платежи
+                  </h4>
+                  {item.paymentAmount.length > 0 ? (
+                    <div className="space-y-3">
+                      {item.paymentAmount.map((pay) => (
+                        <div
+                          key={pay._id}
+                          className="border rounded-lg p-3 bg-background"
+                        >
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium">
+                                {pay.date
+                                  ? new Date(pay.date).toLocaleDateString("ru-RU", {
+                                      day: "2-digit",
+                                      month: "2-digit",
+                                      year: "numeric",
+                                    })
+                                  : "—"}
+                              </div>
+                              <Badge variant="outline" className="mt-1 font-mono text-xs">
+                                {formatNumber(pay.amount)} UZS
+                              </Badge>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
+                              <Button
+                                onClick={() => handleEditClick(item._id, pay._id)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                onClick={() => handleDeleteClick(item._id, pay._id)}
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                          {/* Изображения */}
+                          {pay.images.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {pay.images.map((img, idx) => (
+                                <div key={idx} className="relative group">
+                                  <img
+                                    src={`${api}${img}`}
+                                    alt="payment"
+                                    className="w-12 h-12 sm:w-16 sm:h-16 object-cover rounded-md border-2 border-border hover:border-primary transition-colors cursor-pointer hover:shadow-lg"
+                                    onClick={() => handleImageClick(pay.images, idx)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground text-xs italic">
+                              Нет изображений
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-muted-foreground text-sm italic text-center py-4 border rounded-lg bg-muted/20">
+                      Нет платежей
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-muted-foreground order-2 sm:order-1">
             Страница <strong>{currentPage}</strong> из <strong>{totalPages}</strong>
           </p>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 order-1 sm:order-2">
             <Button
               onClick={handlePrevPage}
               disabled={currentPage === 1}
@@ -326,7 +474,7 @@ const ClientTable = () => {
               className="gap-1"
             >
               <ChevronLeft className="h-4 w-4" />
-              Назад
+              <span className="hidden sm:inline">Назад</span>
             </Button>
             <Button
               onClick={handleNextPage}
@@ -335,7 +483,7 @@ const ClientTable = () => {
               size="sm"
               className="gap-1"
             >
-              Далее
+              <span className="hidden sm:inline">Далее</span>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>

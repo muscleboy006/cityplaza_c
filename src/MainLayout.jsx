@@ -115,7 +115,7 @@ const MainLayout = () => {
       </Sheet>
 
       {/* ✅ Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1">
         <Outlet />
       </main>
     </div>
